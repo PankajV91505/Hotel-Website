@@ -1,12 +1,12 @@
-from flask import Blueprint, request, jsonify
-from ..extensions import db, jwt, mail
-from ..models.user import User
-from ..utils.otp import generate_otp, store_otp, verify_otp
-from ..utils.email import send_otp_email
+from flask import Blueprint, request, jsonify, redirect, url_for, session
 from flask_jwt_extended import create_access_token
-from werkzeug.security import check_password_hash
+from ..extensions import db, mail, jwt, oauth
+from ..models.user import User
+from flask_mail import Message
+from sqlalchemy.exc import IntegrityError
+import random
+import string
 import logging
-from sqlalchemy.exc import SQLAlchemyError
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -14,8 +14,75 @@ logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
 
-@auth_bp.route('/signup', methods=['POST'])
+# ✅ Fetch the registered Google OAuth client
+google = oauth.create_client('google')
+
+
+@auth_bp.route('/google', methods=['GET'])
+def google_login():
+    logger.debug('Initiating Google OAuth login')
+    redirect_uri = url_for('auth.google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+
+@auth_bp.route('/google/callback', methods=['GET'])
+def google_callback():
+    try:
+        logger.debug('Handling Google OAuth callback')
+        token = google.authorize_access_token()
+        user_info = token.get('userinfo')
+        if not user_info:
+            logger.error('Failed to fetch user info from Google')
+            return jsonify({'message': 'Failed to fetch user info'}), 400
+
+        email = user_info.get('email')
+        name = user_info.get('name', '')
+        google_id = user_info.get('sub')
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            user = User(
+                email=email,
+                first_name=name.split()[0] if name else '',
+                last_name=' '.join(name.split()[1:]) if len(name.split()) > 1 else '',
+                password=''
+            )
+            db.session.add(user)
+            try:
+                db.session.commit()
+                logger.info(f'New user created: {email}')
+            except IntegrityError:
+                db.session.rollback()
+                logger.error(f'Duplicate email: {email}')
+                return jsonify({'message': 'Email already exists'}), 400
+
+        access_token = create_access_token(identity=user.id)
+        logger.info(f'Google login successful for {email}')
+        session['jwt_token'] = access_token
+        return redirect('http://localhost:5173/callback')
+
+    except Exception as e:
+        logger.error(f'Google OAuth error: {str(e)}')
+        return jsonify({'message': 'Authentication failed'}), 500
+
+
+@auth_bp.route('/get-token', methods=['GET'])
+def get_token():
+    token = session.pop('jwt_token', None)
+    if not token:
+        return jsonify({'message': 'No token found'}), 400
+    return jsonify({'access_token': token}), 200
+
+
+@auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
 def signup():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
+
     logger.debug('Received signup request')
     data = request.get_json()
     first_name = data.get('first_name')
@@ -25,76 +92,92 @@ def signup():
 
     if not all([first_name, last_name, email, password]):
         logger.error('Missing required fields')
-        return jsonify({'message': 'First name, last name, email, and password are required'}), 400
+        return jsonify({'message': 'Missing required fields'}), 400
 
-    if User.query.filter_by(email=email).first():
-        logger.warning(f'Email already exists: {email}')
-        return jsonify({'message': 'Email already exists'}), 400
-
-    user = User(first_name=first_name, last_name=last_name, email=email)
-    user.set_password(password)
-    db.session.add(user)
     try:
+        if User.query.filter_by(email=email).first():
+            logger.warning(f'Email already exists: {email}')
+            return jsonify({'message': 'Email already exists'}), 400
+
+        otp = ''.join(random.choices(string.digits, k=6))
+        user = User(first_name=first_name, last_name=last_name, email=email, password=password, otp=otp)
+        db.session.add(user)
         db.session.commit()
-    except SQLAlchemyError as e:
-        logger.error(f'Database error during user creation: {str(e)}')
+
+        msg = Message('Your OTP Code', sender='your-email@gmail.com', recipients=[email])
+        msg.body = f'Your OTP code is {otp}. Please use this to verify your account.'
+        mail.send(msg)
+        logger.info(f'OTP sent to {email}')
+        return jsonify({'message': 'OTP sent to your email'}), 201
+    except Exception as e:
+        logger.error(f'Error during signup: {str(e)}')
         db.session.rollback()
-        return jsonify({'message': 'Failed to create user'}), 500
+        return jsonify({'message': 'Failed to sign up'}), 500
 
-    otp = generate_otp()
-    try:
-        store_otp(email, otp)
-    except SQLAlchemyError as e:
-        logger.error(f'Database error during OTP storage: {str(e)}')
-        db.session.rollback()
-        return jsonify({'message': 'Failed to store OTP'}), 500
 
-    if not send_otp_email(email, otp):
-        logger.error(f'Failed to send OTP email to {email}')
-        return jsonify({'message': 'Failed to send OTP email'}), 500
+@auth_bp.route('/verify-otp', methods=['POST', 'OPTIONS'])
+def verify_otp():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
 
-    logger.info(f'User created and OTP sent to {email}')
-    return jsonify({'message': 'User created. OTP sent to email'}), 201
-
-@auth_bp.route('/verify-otp', methods=['POST'])
-def verify_otp_route():
     logger.debug('Received OTP verification request')
     data = request.get_json()
     email = data.get('email')
     otp = data.get('otp')
 
-    if verify_otp(email, otp):
-        user = User.query.filter_by(email=email).first()
-        user.is_verified = True
-        try:
-            db.session.commit()
-        except SQLAlchemyError as e:
-            logger.error(f'Database error during OTP verification: {str(e)}')
-            db.session.rollback()
-            return jsonify({'message': 'Failed to verify OTP'}), 500
-        access_token = create_access_token(identity=user.id)
-        logger.info(f'Email verified for {email}')
-        return jsonify({'message': 'Email verified', 'access_token': access_token}), 200
-    logger.warning(f'Invalid OTP for {email}')
-    return jsonify({'message': 'Invalid OTP'}), 400
+    user = User.query.filter_by(email=email).first()
+    if not user or user.otp != otp:
+        logger.warning(f'Invalid OTP for {email}')
+        return jsonify({'message': 'Invalid OTP'}), 400
 
-@auth_bp.route('/login', methods=['POST'])
+    user.otp = None
+    db.session.commit()
+    access_token = create_access_token(identity=user.id)
+    logger.info(f'OTP verified for {email}')
+    return jsonify({'message': 'OTP verified', 'access_token': access_token}), 200
+
+
+@auth_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
+
     logger.debug('Received login request')
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
 
     user = User.query.filter_by(email=email).first()
-    if user and user.check_password(password) and user.is_verified:
-        access_token = create_access_token(identity=user.id)
-        logger.info(f'Login successful for {email}')
-        return jsonify({'access_token': access_token}), 200
-    logger.warning(f'Invalid credentials or email not verified for {email}')
-    return jsonify({'message': 'Invalid credentials or email not verified'}), 401
+    if not user or not user.check_password(password):
+        logger.warning(f'Invalid login attempt for {email}')
+        return jsonify({'message': 'Invalid email or password'}), 401
 
-@auth_bp.route('/forgot-password', methods=['POST'])
+    if user.otp:
+        logger.warning(f'Account not verified for {email}')
+        return jsonify({'message': 'Account not verified. Please verify your OTP.'}), 403
+
+    access_token = create_access_token(identity=user.id)
+    logger.info(f'Login successful for {email}')
+    return jsonify({'message': 'Login successful', 'access_token': access_token}), 200
+
+
+@auth_bp.route('/forgot-password', methods=['POST', 'OPTIONS'])
 def forgot_password():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
+
     logger.debug('Received forgot password request')
     data = request.get_json()
     email = data.get('email')
@@ -104,38 +187,39 @@ def forgot_password():
         logger.warning(f'Email not found: {email}')
         return jsonify({'message': 'Email not found'}), 404
 
-    otp = generate_otp()
-    try:
-        store_otp(email, otp)
-    except SQLAlchemyError as e:
-        logger.error(f'Database error during OTP storage: {str(e)}')
-        db.session.rollback()
-        return jsonify({'message': 'Failed to store OTP'}), 500
+    otp = ''.join(random.choices(string.digits, k=6))
+    user.otp = otp
+    db.session.commit()
 
-    if not send_otp_email(email, otp):
-        logger.error(f'Failed to send OTP email to {email}')
-        return jsonify({'message': 'Failed to send OTP email'}), 500
-    logger.info(f'OTP sent to {email}')
-    return jsonify({'message': 'OTP sent to email'}), 200
+    msg = Message('Password Reset OTP', sender='your-email@gmail.com', recipients=[email])
+    msg.body = f'Your OTP for password reset is {otp}.'
+    mail.send(msg)
+    logger.info(f'Password reset OTP sent to {email}')
+    return jsonify({'message': 'OTP sent to your email'}), 200
 
-@auth_bp.route('/reset-password', methods=['POST'])
+
+@auth_bp.route('/reset-password', methods=['POST', 'OPTIONS'])
 def reset_password():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
+        }
+
     logger.debug('Received reset password request')
     data = request.get_json()
     email = data.get('email')
     otp = data.get('otp')
     new_password = data.get('new_password')
 
-    if verify_otp(email, otp):
-        user = User.query.filter_by(email=email).first()
-        user.set_password(new_password)
-        try:
-            db.session.commit()
-        except SQLAlchemyError as e:
-            logger.error(f'Database error during password reset: {str(e)}')
-            db.session.rollback()
-            return jsonify({'message': 'Failed to reset password'}), 500
-        logger.info(f'Password reset successful for {email}')
-        return jsonify({'message': 'Password reset successful'}), 200
-    logger.warning(f'Invalid OTP for {email}')
-    return jsonify({'message': 'Invalid OTP'}), 400
+    user = User.query.filter_by(email=email).first()
+    if not user or user.otp != otp:
+        logger.warning(f'Invalid OTP for password reset: {email}')
+        return jsonify({'message': 'Invalid OTP'}), 400
+
+    user.set_password(new_password)
+    user.otp = None
+    db.session.commit()
+    logger.info(f'Password reset successful for {email}')
+    return jsonify({'message': 'Password reset successful'}), 200

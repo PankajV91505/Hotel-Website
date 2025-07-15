@@ -1,26 +1,26 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { createRoom } from '../../api/auth';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { createRoom } from "../../api/auth"; // Updated path
 
 function AddRoom() {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [capacity, setCapacity] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [capacity, setCapacity] = useState("");
   const [available, setAvailable] = useState(true);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
   const handleAddRoom = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        setError('Please log in to add a room');
-        setTimeout(() => navigate('/login'), 2000);
+        setError("Please log in to add a room");
+        setTimeout(() => navigate("/login"), 2000);
         return;
       }
       await createRoom({
@@ -30,11 +30,16 @@ function AddRoom() {
         capacity: parseInt(capacity),
         available,
       });
-      setMessage('Room added successfully! Redirecting to rooms...');
-      setTimeout(() => navigate('/dashboard/rooms'), 2000);
+      setMessage("Room added successfully! Redirecting to rooms...");
+      setTimeout(() => navigate("/dashboard/rooms"), 2000);
     } catch (error) {
-      console.error('Failed to add room:', error);
-      setError(error.response?.data?.message || 'Failed to add room. Please try again.');
+      console.error("Failed to add room:", error);
+      const errorMessage =
+        error.response?.data?.msg ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to add room. Please check your network or try again.";
+      setError(errorMessage);
     }
   };
 
@@ -43,7 +48,9 @@ function AddRoom() {
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold text-center mb-6">Add New Room</h1>
         {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
-        {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
+        {message && (
+          <p className="text-green-500 mb-4 text-center">{message}</p>
+        )}
         <div className="bg-white p-6 rounded shadow-md">
           <form onSubmit={handleAddRoom}>
             <div className="mb-4">
@@ -98,14 +105,20 @@ function AddRoom() {
               />
               <span>Is Available</span>
             </div>
-            <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+            <button
+              type="submit"
+              className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+            >
               Add Room
             </button>
           </form>
           <p className="mt-4 text-center">
-            <a href="/dashboard/rooms" className="text-blue-500 hover:underline">
+            <Link
+              to="/dashboard/rooms"
+              className="text-blue-500 hover:underline"
+            >
               Back to Rooms
-            </a>
+            </Link>
           </p>
         </div>
       </div>

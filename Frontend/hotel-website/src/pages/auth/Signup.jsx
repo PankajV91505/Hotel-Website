@@ -1,71 +1,135 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import SignupForm from '../../components/auth/SignupForm';
-import { signup, verifyOtp } from '../../api/auth';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { signup, verifyOtp, googleLogin } from "../../api/auth"; // Updated path
 
 function Signup() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState('signup');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [showOtp, setShowOtp] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
     try {
-      const response = await signup({ firstName, lastName, email, password });
-      console.log('Signup response:', response);
-      setMessage('OTP sent to your email. Please verify.');
-      setStep('verify');
+      await signup({ firstName, lastName, email, password });
+      setMessage("OTP sent to your email");
+      setShowOtp(true);
     } catch (error) {
-      console.error('Signup failed:', error);
-      setError(error.response?.data?.message || 'Failed to sign up. Please try again.');
+      console.error("Signup failed:", error);
+      const errorMessage =
+        error.response?.data?.message || "Signup failed. Please try again.";
+      setError(errorMessage);
     }
   };
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
     try {
       const response = await verifyOtp(email, otp);
-      localStorage.setItem('token', response.access_token);
-      setMessage('Email verified successfully! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 2000); // Redirect to login after 2 seconds
+      localStorage.setItem("token", response.access_token);
+      setMessage("Signup successful! Redirecting to dashboard...");
+      setTimeout(() => navigate("/dashboard/rooms"), 2000);
     } catch (error) {
-      console.error('OTP verification failed:', error);
-      setError(error.response?.data?.message || 'Invalid OTP. Please try again.');
+      console.error("OTP verification failed:", error);
+      const errorMessage =
+        error.response?.data?.message || "Invalid OTP. Please try again.";
+      setError(errorMessage);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    try {
+      await googleLogin();
+    } catch (error) {
+      console.error("Google signup failed:", error);
+      setError("Google signup failed. Please try again.");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-6">Hotel Booking App</h1>
+        <h1 className="text-3xl font-bold text-center mb-6">
+          {showOtp ? "Verify OTP" : "Sign Up"}
+        </h1>
         {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
-        {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
-        {step === 'signup' ? (
-          <SignupForm
-            firstName={firstName}
-            setFirstName={setFirstName}
-            lastName={lastName}
-            setLastName={setLastName}
-            email={email}
-            setEmail={setEmail}
-            password={password}
-            setPassword={setPassword}
-            handleSignup={handleSignup}
-          />
-        ) : (
-          <div className="bg-white p-6 rounded shadow-md">
-            <h2 className="text-2xl mb-4 text-center">Verify OTP</h2>
-            <p className="text-gray-600 mb-4 text-center">An OTP has been sent to {email}</p>
+        {message && (
+          <p className="text-green-500 mb-4 text-center">{message}</p>
+        )}
+        <div className="bg-white p-6 rounded shadow-md">
+          {!showOtp ? (
+            <>
+              <form onSubmit={handleSignup}>
+                <div className="mb-4">
+                  <label className="block text-gray-700">First Name</label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700">Last Name</label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700">Email</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
+                <div className="mb-4">
+                  <label className="block text-gray-700">Password</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full p-2 border rounded"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+                >
+                  Sign Up
+                </button>
+              </form>
+              <button
+                onClick={handleGoogleSignup}
+                className="w-full bg-red-500 text-white p-2 rounded mt-4 hover:bg-red-600"
+              >
+                Sign up with Google
+              </button>
+              <p className="mt-4 text-center">
+                Already have an account?{" "}
+                <Link to="/login" className="text-blue-500 hover:underline">
+                  Login
+                </Link>
+              </p>
+            </>
+          ) : (
             <form onSubmit={handleVerifyOtp}>
               <div className="mb-4">
                 <label className="block text-gray-700">OTP</label>
@@ -77,15 +141,15 @@ function Signup() {
                   required
                 />
               </div>
-              <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+              <button
+                type="submit"
+                className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+              >
                 Verify OTP
               </button>
             </form>
-            <p className="mt-4 text-center">
-              <a href="/login" className="text-blue-500 hover:underline">Go to Login</a>
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

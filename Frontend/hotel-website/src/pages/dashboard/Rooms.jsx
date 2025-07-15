@@ -1,28 +1,33 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { getRooms, deleteRoom } from '../../api/auth';
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { getRooms, deleteRoom } from "../../api/auth"; // Updated path
 
 function Rooms() {
   const [rooms, setRooms] = useState([]);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
-          setError('Please log in to view rooms');
-          setTimeout(() => navigate('/login'), 2000);
+          setError("Please log in to view rooms");
+          setTimeout(() => navigate("/login"), 2000);
           return;
         }
         const roomsData = await getRooms();
         setRooms(roomsData);
         setLoading(false);
       } catch (error) {
-        console.error('Failed to fetch rooms:', error);
-        setError(error.response?.data?.message || 'Failed to load rooms');
+        console.error("Failed to fetch rooms:", error);
+        const errorMessage =
+          error.response?.data?.msg ||
+          error.response?.data?.message ||
+          error.message ||
+          "Failed to load rooms. Please try again.";
+        setError(errorMessage);
         setLoading(false);
       }
     };
@@ -30,25 +35,36 @@ function Rooms() {
   }, [navigate]);
 
   const handleDeleteRoom = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this room?')) return;
+    if (!window.confirm("Are you sure you want to delete this room?")) return;
     try {
       await deleteRoom(id);
       setRooms(rooms.filter((room) => room.id !== id));
     } catch (error) {
-      console.error('Failed to delete room:', error);
-      setError(error.response?.data?.message || 'Failed to delete room');
+      console.error("Failed to delete room:", error);
+      setError(
+        error.response?.data?.msg ||
+          error.response?.data?.message ||
+          "Failed to delete room"
+      );
     }
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Available Rooms</h1>
-        <Link to="/dashboard/add-room" className="bg-green-500 text-white p-2 rounded hover:bg-green-600">
+        <Link
+          to="/dashboard/add-room"
+          className="bg-green-500 text-white p-2 rounded hover:bg-green-600"
+        >
           Add New Room
         </Link>
       </div>
@@ -60,11 +76,13 @@ function Rooms() {
           {rooms.map((room) => (
             <div key={room.id} className="bg-white p-4 rounded shadow-md">
               <h2 className="text-xl font-semibold">{room.name}</h2>
-              <p className="text-gray-600">Description: {room.description || 'N/A'}</p>
+              <p className="text-gray-600">
+                Description: {room.description || "N/A"}
+              </p>
               <p className="text-gray-600">Price: ${room.price}/night</p>
               <p className="text-gray-600">Capacity: {room.capacity} guests</p>
               <p className="text-gray-600">
-                Status: {room.available ? 'Available' : 'Booked'}
+                Status: {room.available ? "Available" : "Booked"}
               </p>
               <div className="mt-4 flex space-x-2">
                 <Link

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { getRoom, updateRoom } from '../../api/auth';
 
 function EditRoom() {
@@ -134,9 +134,9 @@ function EditRoom() {
             </button>
           </form>
           <p className="mt-4 text-center">
-            <a href="/dashboard/rooms" className="text-blue-500 hover:underline">
+            <Link to="/dashboard/rooms" className="text-blue-500 hover:underline">
               Back to Rooms
-            </a>
+            </Link>
           </p>
         </div>
       </div>
