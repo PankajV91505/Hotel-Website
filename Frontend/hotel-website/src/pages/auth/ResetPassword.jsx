@@ -21,7 +21,7 @@ function ResetPassword() {
     }
     try {
       await resetPassword(email, otp, newPassword);
-      setMessage('Password reset successful. Please log in.');
+      setMessage('Password reset successful. Redirecting to login...');
       setTimeout(() => navigate('/login'), 2000); // Redirect to login after 2 seconds
     } catch (error) {
       console.error('Password reset failed:', error);

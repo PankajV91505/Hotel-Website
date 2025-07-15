@@ -73,6 +73,9 @@ function SignupForm({ firstName, setFirstName, lastName, setLastName, email, set
           Sign Up
         </button>
       </form>
+      <p className="mt-4 text-center">
+        Already have an account? <a href="/login" className="text-blue-500 hover:underline">Login</a>
+      </p>
     </div>
   );
 }

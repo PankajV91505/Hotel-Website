@@ -26,3 +26,38 @@ export const forgotPassword = async (email) => {
 export const resetPassword = async (email, otp, new_password) => {
   return axios.post(`${API_URL}/auth/reset-password`, { email, otp, new_password }).then(res => res.data);
 };
+
+export const getRooms = async () => {
+  const token = localStorage.getItem('token');
+  return axios.get(`${API_URL}/rooms`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then(res => res.data);
+};
+
+export const createRoom = async (roomData) => {
+  const token = localStorage.getItem('token');
+  return axios.post(`${API_URL}/rooms`, roomData, {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then(res => res.data);
+};
+
+export const getRoom = async (id) => {
+  const token = localStorage.getItem('token');
+  return axios.get(`${API_URL}/rooms/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then(res => res.data);
+};
+
+export const updateRoom = async (id, roomData) => {
+  const token = localStorage.getItem('token');
+  return axios.put(`${API_URL}/rooms/${id}`, roomData, {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then(res => res.data);
+};
+
+export const deleteRoom = async (id) => {
+  const token = localStorage.getItem('token');
+  return axios.delete(`${API_URL}/rooms/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  }).then(res => res.data);
+};

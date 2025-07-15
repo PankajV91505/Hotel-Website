@@ -31,7 +31,8 @@ function Login() {
     setMessage('');
     try {
       await forgotPassword(forgotPasswordEmail);
-      setMessage('OTP sent to your email. Check your inbox.');
+      setMessage('OTP sent to your email. Redirecting to reset password...');
+      setTimeout(() => navigate('/reset-password'), 2000); // Redirect to reset-password
     } catch (error) {
       console.error('Forgot password failed:', error);
       setError(error.response?.data?.message || 'Failed to send OTP. Please try again.');

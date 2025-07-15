@@ -11,14 +11,17 @@ function Signup() {
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState('signup');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setError('');
+    setMessage('');
     try {
       const response = await signup({ firstName, lastName, email, password });
       console.log('Signup response:', response);
+      setMessage('OTP sent to your email. Please verify.');
       setStep('verify');
     } catch (error) {
       console.error('Signup failed:', error);
@@ -29,10 +32,12 @@ function Signup() {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError('');
+    setMessage('');
     try {
       const response = await verifyOtp(email, otp);
       localStorage.setItem('token', response.access_token);
-      navigate('/login'); // Redirect to login page after OTP verification
+      setMessage('Email verified successfully! Redirecting to login...');
+      setTimeout(() => navigate('/login'), 2000); // Redirect to login after 2 seconds
     } catch (error) {
       console.error('OTP verification failed:', error);
       setError(error.response?.data?.message || 'Invalid OTP. Please try again.');
@@ -44,6 +49,7 @@ function Signup() {
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold text-center mb-6">Hotel Booking App</h1>
         {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+        {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
         {step === 'signup' ? (
           <SignupForm
             firstName={firstName}
