@@ -10,6 +10,8 @@ import Rooms from './pages/dashboard/Rooms.jsx';
 import AddRoom from './pages/dashboard/AddRoom.jsx';
 import EditRoom from './pages/dashboard/EditRoom.jsx';
 import Callback from './pages/Callback.jsx';
+import BookRoom from './pages/BookRoom.jsx';
+import Dashboard from './pages/Dashboard.jsx';
 import ErrorBoundary from './ErrorBoundary.jsx';
 import './index.css';
 
@@ -26,6 +28,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/dashboard/add-room" element={<AddRoom />} errorElement={<ErrorBoundary />} />
         <Route path="/dashboard/edit-room/:id" element={<EditRoom />} errorElement={<ErrorBoundary />} />
         <Route path="/callback" element={<Callback />} errorElement={<ErrorBoundary />} />
+        <Route path="/book-room" element={<BookRoom />} errorElement={<ErrorBoundary />} />
+        <Route path="/dashboard" element={<Dashboard />} errorElement={<ErrorBoundary />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

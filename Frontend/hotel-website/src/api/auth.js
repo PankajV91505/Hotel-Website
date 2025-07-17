@@ -1,92 +1,86 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  withCredentials: true,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// ✅ Automatically attach token if available
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ------------------------ AUTH ------------------------
 
 export const signup = async ({ firstName, lastName, email, password }) => {
-  return axios
-    .post(`${API_URL}/auth/signup`, {
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      password,
-    })
-    .then((res) => res.data);
+  const res = await API.post("/auth/signup", {
+    firstName,
+    lastName,
+    email,
+    password,
+  });
+  return res.data;
 };
 
 export const verifyOtp = async (email, otp) => {
-  return axios
-    .post(`${API_URL}/auth/verify-otp`, { email, otp })
-    .then((res) => res.data);
+  const res = await API.post("/auth/verify-otp", { email, otp });
+  return res.data;
 };
 
-export const login = async (email, password) => {
-  return axios
-    .post(`${API_URL}/auth/login`, { email, password })
-    .then((res) => res.data);
+// ✅ Fixed: accept object input like { email, password }
+export const login = async ({ email, password }) => {
+  const res = await API.post("/auth/login", { email, password });
+  return res.data;
 };
 
 export const forgotPassword = async (email) => {
-  return axios
-    .post(`${API_URL}/auth/forgot-password`, { email })
-    .then((res) => res.data);
+  const res = await API.post("/auth/forgot-password", { email });
+  return res.data;
 };
 
 export const resetPassword = async (email, otp, new_password) => {
-  return axios
-    .post(`${API_URL}/auth/reset-password`, { email, otp, new_password })
-    .then((res) => res.data);
+  const res = await API.post("/auth/reset-password", {
+    email,
+    otp,
+    new_password,
+  });
+  return res.data;
 };
 
 export const googleLogin = async () => {
-  window.location.href = `${API_URL}/auth/google`;
+  window.location.href = `${API.defaults.baseURL}/auth/google`;
 };
 
+// ------------------------ ROOMS ------------------------
+
 export const getRooms = async () => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
-  return axios
-    .get(`${API_URL}/rooms`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => res.data);
+  const res = await API.get("/rooms");
+  return res.data;
 };
 
 export const createRoom = async (roomData) => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
-  return axios
-    .post(`${API_URL}/rooms`, roomData, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => res.data);
+  const res = await API.post("/rooms", roomData);
+  return res.data;
 };
 
 export const getRoom = async (id) => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
-  return axios
-    .get(`${API_URL}/rooms/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => res.data);
+  const res = await API.get(`/rooms/${id}`);
+  return res.data;
 };
 
 export const updateRoom = async (id, roomData) => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
-  return axios
-    .put(`${API_URL}/rooms/${id}`, roomData, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => res.data);
+  const res = await API.put(`/rooms/${id}`, roomData);
+  return res.data;
 };
 
 export const deleteRoom = async (id) => {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No token found");
-  return axios
-    .delete(`${API_URL}/rooms/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => res.data);
+  const res = await API.delete(`/rooms/${id}`);
+  return res.data;
 };

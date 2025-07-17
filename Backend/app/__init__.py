@@ -10,24 +10,17 @@ def create_app():
     app.config.from_object(Config)
     app.config['STRICT_SLASHES'] = False
 
-    # CORS setup
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": ["http://localhost:5173"],
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
-            "supports_credentials": True
-        }
-    })
+    # ✅ Enable CORS for frontend (Vite)
+    CORS(app, origins="http://localhost:5173", supports_credentials=True)
 
-    # Initialize extensions
+    # ✅ Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
     mail.init_app(app)
     migrate.init_app(app, db)
-    oauth.init_app(app)  # ✅ REQUIRED for Authlib
+    oauth.init_app(app)
 
-    # ✅ Register Google OAuth client (after oauth.init_app)
+    # ✅ Register Google OAuth
     oauth.register(
         name='google',
         client_id=app.config['GOOGLE_CLIENT_ID'],
@@ -36,7 +29,7 @@ def create_app():
         client_kwargs={'scope': 'openid email profile'}
     )
 
-    # Register Blueprints
+    # ✅ Register Blueprints
     from .routes.auth import auth_bp
     from .routes.rooms import rooms_bp
     from .routes.bookings import bookings_bp
@@ -45,7 +38,7 @@ def create_app():
     app.register_blueprint(rooms_bp, url_prefix='/api/rooms')
     app.register_blueprint(bookings_bp, url_prefix='/api/bookings')
 
-    # Optional: Normalize trailing slashes in URLs
+    # ✅ Normalize trailing slashes
     @app.before_request
     def normalize_path():
         if request.path.endswith('/') and request.path != '/':
@@ -53,5 +46,14 @@ def create_app():
                 request.environ['PATH_INFO'] = request.path.rstrip('/')
             else:
                 return redirect(request.path.rstrip('/'), code=301)
+
+    # ✅ Add CORS headers even to error responses
+    @app.after_request
+    def add_cors_headers(response):
+        response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
+        response.headers['Access-Control-Allow-Credentials'] = 'true'
+        response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        return response
 
     return app

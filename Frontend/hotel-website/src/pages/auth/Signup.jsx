@@ -3,11 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { signup, verifyOtp, googleLogin } from "../../api/auth";
 
 function Signup() {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [first_name, setFirstName] = useState("");
+  const [last_name, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirm_password, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -19,13 +19,18 @@ function Signup() {
     setError("");
     setMessage("");
 
-    if (password !== confirmPassword) {
+    if (password !== confirm_password) {
       setError("Passwords do not match.");
       return;
     }
 
     try {
-      await signup({ firstName, lastName, email, password });
+      await signup({
+        firstName: first_name,
+        lastName: last_name,
+        email,
+        password,
+      });
       setMessage("OTP sent to your email");
       setShowOtp(true);
     } catch (error) {
@@ -79,7 +84,7 @@ function Signup() {
                   <label className="block text-gray-700">First Name</label>
                   <input
                     type="text"
-                    value={firstName}
+                    value={first_name}
                     onChange={(e) => setFirstName(e.target.value)}
                     className="w-full p-2 border rounded"
                     required
@@ -90,7 +95,7 @@ function Signup() {
                   <label className="block text-gray-700">Last Name</label>
                   <input
                     type="text"
-                    value={lastName}
+                    value={last_name}
                     onChange={(e) => setLastName(e.target.value)}
                     className="w-full p-2 border rounded"
                     required
@@ -123,7 +128,7 @@ function Signup() {
                   <label className="block text-gray-700">Re-enter Password</label>
                   <input
                     type="password"
-                    value={confirmPassword}
+                    value={confirm_password}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full p-2 border rounded"
                     required

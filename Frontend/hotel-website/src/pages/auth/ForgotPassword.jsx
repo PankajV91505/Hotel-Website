@@ -1,38 +1,41 @@
-import { useState } from 'react';
-import { forgotPassword, resetPassword } from '../../api/auth';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function ForgotPassword() {
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [step, setStep] = useState('request');
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const navigate = useNavigate();
 
-  const handleRequestOtp = async (e) => {
+  const handleForgotPassword = async (e) => {
     e.preventDefault();
+    setError("");
+    setMessage("");
     try {
-      await forgotPassword(email);
-      setStep('reset');
+      // Send data in snake_case
+      const response = await axios.post("http://localhost:5000/api/auth/forgot-password", {
+        email: email, // already snake_case
+      });
+      setMessage(response.data.message);
+      setTimeout(() => navigate("/reset-password"), 2000);
     } catch (error) {
-      console.error('Failed to send OTP:', error);
-    }
-  };
-
-  const handleResetPassword = async (e) => {
-    e.preventDefault();
-    try {
-      await resetPassword(email, otp, newPassword);
-      setStep('success');
-    } catch (error) {
-      console.error('Password reset failed:', error);
+      console.error("Forgot password failed:", error);
+      const errorMessage =
+        error.response?.data?.message || "Failed to send OTP. Please try again.";
+      setError(errorMessage);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded shadow-md">
-      {step === 'request' && (
-        <>
-          <h2 className="text-2xl mb-4">Forgot Password</h2>
-          <form onSubmit={handleRequestOtp}>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="w-full max-w-md">
+        <h1 className="text-3xl font-bold text-center mb-6">Forgot Password</h1>
+        {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+        {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
+
+        <div className="bg-white p-6 rounded shadow-md">
+          <form onSubmit={handleForgotPassword}>
             <div className="mb-4">
               <label className="block text-gray-700">Email</label>
               <input
@@ -43,48 +46,23 @@ function ForgotPassword() {
                 required
               />
             </div>
-            <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">
+
+            <button
+              type="submit"
+              className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+            >
               Send OTP
             </button>
           </form>
-        </>
-      )}
-      {step === 'reset' && (
-        <>
-          <h2 className="text-2xl mb-4">Reset Password</h2>
-          <form onSubmit={handleResetPassword}>
-            <div className="mb-4">
-              <label className="block text-gray-700">OTP</label>
-              <input
-                type="text"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">New Password</label>
-              <input
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-            <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded">
-              Reset Password
-            </button>
-          </form>
-        </>
-      )}
-      {step === 'success' && (
-        <div>
-          <h2 className="text-2xl mb-4">Password Reset Successful</h2>
-          <p>You can now <a href="/login" className="text-blue-500">log in</a> with your new password.</p>
+
+          <p className="mt-4 text-center">
+            Back to{" "}
+            <Link to="/login" className="text-blue-500 hover:underline">
+              Login
+            </Link>
+          </p>
         </div>
-      )}
+      </div>
     </div>
   );
 }

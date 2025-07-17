@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, redirect, url_for, session
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from ..extensions import db, mail, jwt, oauth
 from ..models.user import User
 from ..config import Config
@@ -79,17 +79,13 @@ def get_token():
 @auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
 def signup():
     if request.method == 'OPTIONS':
-        logger.debug('Handling OPTIONS request for /api/auth/signup')
-        return jsonify({}), 200, {
-            'Access-Control-Allow-Origin': 'http://localhost:5173',
-            'Access-Control-Allow-Methods': 'POST,OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
+        return jsonify({}), 200
+
     logger.debug('Received signup request')
     data = request.get_json()
     logger.debug(f'Signup data: {data}')
-    first_name = data.get('firstName')  # Updated to match frontend
-    last_name = data.get('lastName')   # Updated to match frontend
+    first_name = data.get('firstName')
+    last_name = data.get('lastName')
     email = data.get('email')
     password = data.get('password')
 
@@ -105,7 +101,16 @@ def signup():
 
         otp = ''.join(random.choices(string.digits, k=6))
         logger.debug(f'Creating user: {email}, OTP: {otp}')
-        user = User(first_name=first_name, last_name=last_name, email=email, password=password, otp=otp)
+
+        # ✅ FIXED: otp assigned after user is created
+        user = User(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            password=password
+        )
+        user.otp = otp
+
         db.session.add(user)
         db.session.commit()
         logger.debug(f'User {email} added to database')
@@ -115,20 +120,18 @@ def signup():
         mail.send(msg)
         logger.info(f'OTP sent to {email}')
         return jsonify({'message': 'OTP sent to your email'}), 201
+
     except Exception as e:
         logger.error(f'Error during signup: {str(e)}\n{traceback.format_exc()}')
         db.session.rollback()
         return jsonify({'message': 'Failed to sign up'}), 500
 
+
 @auth_bp.route('/verify-otp', methods=['POST', 'OPTIONS'])
 def verify_otp():
     if request.method == 'OPTIONS':
-        logger.debug('Handling OPTIONS request for /api/auth/verify-otp')
-        return jsonify({}), 200, {
-            'Access-Control-Allow-Origin': 'http://localhost:5173',
-            'Access-Control-Allow-Methods': 'POST,OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
+        return jsonify({}), 200
+
     logger.debug('Received OTP verification request')
     data = request.get_json()
     logger.debug(f'OTP verification data: {data}')
@@ -153,39 +156,52 @@ def verify_otp():
 @auth_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     if request.method == 'OPTIONS':
-        logger.debug('Handling OPTIONS request for /api/auth/login')
-        return jsonify({}), 200, {
-            'Access-Control-Allow-Origin': 'http://localhost:5173',
-            'Access-Control-Allow-Methods': 'POST,OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
-    logger.debug('Received login request')
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
+        return jsonify({}), 200
 
-    user = User.query.filter_by(email=email).first()
-    if not user or not user.check_password(password):
-        logger.warning(f'Invalid login attempt for {email}')
-        return jsonify({'message': 'Invalid email or password'}), 401
+    try:
+        logger.debug('Received login request')
+        data = request.get_json()
+        logger.debug(f'Login data: {data}')
 
-    if user.otp:
-        logger.warning(f'Account not verified for {email}')
-        return jsonify({'message': 'Account not verified. Please verify your OTP.'}), 403
+        email = data.get('email')
+        password = data.get('password')
 
-    access_token = create_access_token(identity=user.id)
-    logger.info(f'Login successful for {email}')
-    return jsonify({'message': 'Login successful', 'access_token': access_token}), 200
+        if not email or not password:
+            logger.warning('Missing email or password in request')
+            return jsonify({'message': 'Email and password are required'}), 400
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user:
+            logger.warning(f'User not found: {email}')
+            return jsonify({'message': 'Invalid email or password'}), 401
+
+        if not user.check_password(password):
+            logger.warning(f'Wrong password attempt for: {email}')
+            return jsonify({'message': 'Invalid email or password'}), 401
+
+        if user.otp:
+            logger.warning(f'Unverified account: {email}')
+            return jsonify({'message': 'Account not verified. Please verify your OTP.'}), 403
+
+        access_token = create_access_token(identity=user.id)
+        logger.info(f'Login successful for {email}')
+
+        return jsonify({
+            'message': 'Login successful',
+            'access_token': access_token
+        }), 200
+
+    except Exception as e:
+        logger.error(f'Login error: {str(e)}\n{traceback.format_exc()}')
+        return jsonify({'message': 'Something went wrong. Please try again later.'}), 500
+
 
 @auth_bp.route('/forgot-password', methods=['POST', 'OPTIONS'])
 def forgot_password():
     if request.method == 'OPTIONS':
-        logger.debug('Handling OPTIONS request for /api/auth/forgot-password')
-        return jsonify({}), 200, {
-            'Access-Control-Allow-Origin': 'http://localhost:5173',
-            'Access-Control-Allow-Methods': 'POST,OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
+        return jsonify({}), 200
+
     logger.debug('Received forgot password request')
     data = request.get_json()
     email = data.get('email')
@@ -208,12 +224,8 @@ def forgot_password():
 @auth_bp.route('/reset-password', methods=['POST', 'OPTIONS'])
 def reset_password():
     if request.method == 'OPTIONS':
-        logger.debug('Handling OPTIONS request for /api/auth/reset-password')
-        return jsonify({}), 200, {
-            'Access-Control-Allow-Origin': 'http://localhost:5173',
-            'Access-Control-Allow-Methods': 'POST,OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        }
+        return jsonify({}), 200
+
     logger.debug('Received reset password request')
     data = request.get_json()
     email = data.get('email')
@@ -230,3 +242,18 @@ def reset_password():
     db.session.commit()
     logger.info(f'Password reset successful for {email}')
     return jsonify({'message': 'Password reset successful'}), 200
+
+@auth_bp.route('/me', methods=['GET'])
+@jwt_required()
+def get_user_info():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        logger.warning(f'User not found: {user_id}')
+        return jsonify({'message': 'User not found'}), 404
+    return jsonify({
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'email': user.email,
+        'is_admin': user.is_admin
+    }), 200

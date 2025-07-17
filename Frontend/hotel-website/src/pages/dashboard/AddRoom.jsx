@@ -1,16 +1,32 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { createRoom } from "../../api/auth"; // Updated path
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function AddRoom() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [capacity, setCapacity] = useState("");
-  const [available, setAvailable] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await axios.get("http://localhost:5000/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsAdmin(response.data.is_admin);
+      } catch (error) {
+        console.error("Error checking admin status:", error);
+        setError("Failed to verify admin status");
+        navigate("/dashboard/rooms");
+      }
+    };
+    checkAdmin();
+  }, [navigate]);
 
   const handleAddRoom = async (e) => {
     e.preventDefault();
@@ -18,39 +34,38 @@ function AddRoom() {
     setMessage("");
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Please log in to add a room");
-        setTimeout(() => navigate("/login"), 2000);
-        return;
-      }
-      await createRoom({
-        name,
-        description,
-        price: parseFloat(price),
-        capacity: parseInt(capacity),
-        available,
-      });
-      setMessage("Room added successfully! Redirecting to rooms...");
+      const response = await axios.post(
+        "http://localhost:5000/api/rooms/add-room",
+        { name, description, price },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setMessage(response.data.message);
       setTimeout(() => navigate("/dashboard/rooms"), 2000);
     } catch (error) {
-      console.error("Failed to add room:", error);
-      const errorMessage =
-        error.response?.data?.msg ||
-        error.response?.data?.message ||
-        error.message ||
-        "Failed to add room. Please check your network or try again.";
+      console.error("Add room failed:", error);
+      const errorMessage = error.response?.data?.message || "Failed to add room. Please try again.";
       setError(errorMessage);
     }
   };
 
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="bg-white p-6 rounded shadow-md">
+          <h1 className="text-3xl font-bold text-center mb-6">Access Denied</h1>
+          <p className="text-red-500 text-center">Only admins can add rooms.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-6">Add New Room</h1>
+        <h1 className="text-3xl font-bold text-center mb-6">Add Room</h1>
         {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
-        {message && (
-          <p className="text-green-500 mb-4 text-center">{message}</p>
-        )}
+        {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
+
         <div className="bg-white p-6 rounded shadow-md">
           <form onSubmit={handleAddRoom}>
             <div className="mb-4">
@@ -63,48 +78,28 @@ function AddRoom() {
                 required
               />
             </div>
+
             <div className="mb-4">
               <label className="block text-gray-700">Description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full p-2 border rounded"
-                rows="4"
-              />
+                required
+              ></textarea>
             </div>
+
             <div className="mb-4">
-              <label className="block text-gray-700">Price ($/night)</label>
+              <label className="block text-gray-700">Price</label>
               <input
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
-                min="0"
-                step="0.01"
               />
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">Capacity (guests)</label>
-              <input
-                type="number"
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-                min="1"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">Availability</label>
-              <input
-                type="checkbox"
-                checked={available}
-                onChange={(e) => setAvailable(e.target.checked)}
-                className="mr-2"
-              />
-              <span>Is Available</span>
-            </div>
+
             <button
               type="submit"
               className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
@@ -112,14 +107,6 @@ function AddRoom() {
               Add Room
             </button>
           </form>
-          <p className="mt-4 text-center">
-            <Link
-              to="/dashboard/rooms"
-              className="text-blue-500 hover:underline"
-            >
-              Back to Rooms
-            </Link>
-          </p>
         </div>
       </div>
     </div>
