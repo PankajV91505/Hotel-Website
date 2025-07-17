@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { createRoom } from "../../api/auth";
 
 function AddRoom() {
   const [name, setName] = useState("");
@@ -15,31 +15,42 @@ function AddRoom() {
     const checkAdmin = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:5000/api/auth/me", {
+        if (!token) {
+          setError("Please log in as an admin");
+          navigate("/login");
+          return;
+        }
+        console.log("Sending token:", token); // Debug
+        const response = await fetch("http://localhost:5000/api/auth/me", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setIsAdmin(response.data.is_admin);
+        console.log("Response status:", response.status); // Debug
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to verify admin status");
+        }
+        const data = await response.json();
+        console.log("User data:", data); // Debug
+        setIsAdmin(data.is_admin);
+        if (!data.is_admin) {
+          setError("Only admins can add rooms");
+        }
       } catch (error) {
         console.error("Error checking admin status:", error);
-        setError("Failed to verify admin status");
-        navigate("/dashboard/rooms");
+        setError(error.message || "Please log in as an admin");
+        navigate("/login");
       }
     };
     checkAdmin();
   }, [navigate]);
 
-  const handleAddRoom = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
     try {
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        "http://localhost:5000/api/rooms/add-room",
-        { name, description, price },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setMessage(response.data.message);
+      const response = await createRoom({ name, description, price });
+      setMessage(response.message);
       setTimeout(() => navigate("/dashboard/rooms"), 2000);
     } catch (error) {
       console.error("Add room failed:", error);
@@ -53,7 +64,7 @@ function AddRoom() {
       <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
         <div className="bg-white p-6 rounded shadow-md">
           <h1 className="text-3xl font-bold text-center mb-6">Access Denied</h1>
-          <p className="text-red-500 text-center">Only admins can add rooms.</p>
+          <p className="text-red-500 text-center">{error}</p>
         </div>
       </div>
     );
@@ -67,18 +78,17 @@ function AddRoom() {
         {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
 
         <div className="bg-white p-6 rounded shadow-md">
-          <form onSubmit={handleAddRoom}>
+          <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-gray-700">Room Name</label>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.trim())}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
-
             <div className="mb-4">
               <label className="block text-gray-700">Description</label>
               <textarea
@@ -86,9 +96,8 @@ function AddRoom() {
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
-              ></textarea>
+              />
             </div>
-
             <div className="mb-4">
               <label className="block text-gray-700">Price</label>
               <input
@@ -97,9 +106,9 @@ function AddRoom() {
                 onChange={(e) => setPrice(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
+                min="0"
               />
             </div>
-
             <button
               type="submit"
               className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"

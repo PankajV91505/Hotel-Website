@@ -1,31 +1,33 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
+import { resetPassword } from "../../api/auth";
 
 function ResetPassword() {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
-  const handleResetPassword = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
+
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     try {
-      const response = await axios.post("http://localhost:5000/api/auth/reset-password", {
-        email: email,
-        otp: otp,
-        new_password: newPassword, // ✅ snake_case
-      });
-      setMessage(response.data.message);
+      const response = await resetPassword(email, otp, newPassword);
+      setMessage(response.message);
       setTimeout(() => navigate("/login"), 2000);
     } catch (error) {
       console.error("Reset password failed:", error);
-      const errorMessage =
-        error.response?.data?.message || "Failed to reset password. Please try again.";
+      const errorMessage = error.response?.data?.message || "Failed to reset password. Please try again.";
       setError(errorMessage);
     }
   };
@@ -38,29 +40,27 @@ function ResetPassword() {
         {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
 
         <div className="bg-white p-6 rounded shadow-md">
-          <form onSubmit={handleResetPassword}>
+          <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-gray-700">Email</label>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value.trim())}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
-
             <div className="mb-4">
               <label className="block text-gray-700">OTP</label>
               <input
                 type="text"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
+                onChange={(e) => setOtp(e.target.value.trim())}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
-
             <div className="mb-4">
               <label className="block text-gray-700">New Password</label>
               <input
@@ -71,7 +71,16 @@ function ResetPassword() {
                 required
               />
             </div>
-
+            <div className="mb-4">
+              <label className="block text-gray-700">Confirm Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
             <button
               type="submit"
               className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
@@ -79,7 +88,6 @@ function ResetPassword() {
               Reset Password
             </button>
           </form>
-
           <p className="mt-4 text-center">
             Back to{" "}
             <Link to="/login" className="text-blue-500 hover:underline">

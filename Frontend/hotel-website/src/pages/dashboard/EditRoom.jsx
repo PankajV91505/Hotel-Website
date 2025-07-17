@@ -1,88 +1,89 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
-import { getRoom, updateRoom } from '../../api/auth';
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { getRoom, updateRoom } from "../../api/auth";
 
 function EditRoom() {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [capacity, setCapacity] = useState('');
-  const [available, setAvailable] = useState(true);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [availability, setAvailability] = useState(true);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { id } = useParams();
 
   useEffect(() => {
-    const fetchRoom = async () => {
+    const fetchData = async () => {
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
-          setError('Please log in to edit a room');
-          setTimeout(() => navigate('/login'), 2000);
+          setError("Please log in");
+          navigate("/login");
           return;
         }
-        const room = await getRoom(id);
-        setName(room.name);
-        setDescription(room.description || '');
-        setPrice(room.price);
-        setCapacity(room.capacity);
-        setAvailable(room.available);
-        setLoading(false);
+        const [roomResponse, userResponse] = await Promise.all([
+          getRoom(id),
+          fetch("http://localhost:5000/api/auth/me", {
+            headers: { Authorization: `Bearer ${token}` }
+          }).then(res => res.json())
+        ]);
+        setName(roomResponse.name);
+        setDescription(roomResponse.description);
+        setPrice(roomResponse.price);
+        setAvailability(roomResponse.availability);
+        setIsAdmin(userResponse.is_admin);
+        if (!userResponse.is_admin) setError("Only admins can edit rooms");
       } catch (error) {
-        console.error('Failed to fetch room:', error);
-        setError(error.response?.data?.message || 'Failed to load room');
-        setLoading(false);
+        console.error("Error fetching data:", error);
+        setError("Failed to load room");
+        navigate("/login");
       }
     };
-    fetchRoom();
+    fetchData();
   }, [id, navigate]);
 
-  const handleUpdateRoom = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setMessage('');
+    setError("");
+    setMessage("");
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setError('Please log in to update a room');
-        setTimeout(() => navigate('/login'), 2000);
-        return;
-      }
-      await updateRoom(id, {
-        name,
-        description,
-        price: parseFloat(price),
-        capacity: parseInt(capacity),
-        available,
-      });
-      setMessage('Room updated successfully! Redirecting to rooms...');
-      setTimeout(() => navigate('/dashboard/rooms'), 2000);
+      const response = await updateRoom(id, { name, description, price, availability });
+      setMessage(response.message);
+      setTimeout(() => navigate("/dashboard/rooms"), 2000);
     } catch (error) {
-      console.error('Failed to update room:', error);
-      setError(error.response?.data?.message || 'Failed to update room. Please try again.');
+      console.error("Update room failed:", error);
+      const errorMessage = error.response?.data?.message || "Failed to update room. Please try again.";
+      setError(errorMessage);
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="bg-white p-6 rounded shadow-md">
+          <h1 className="text-3xl font-bold text-center mb-6">Access Denied</h1>
+          <p className="text-red-500 text-center">{error}</p>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-md">
         <h1 className="text-3xl font-bold text-center mb-6">Edit Room</h1>
         {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
         {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
+
         <div className="bg-white p-6 rounded shadow-md">
-          <form onSubmit={handleUpdateRoom}>
+          <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block text-gray-700">Room Name</label>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value.trim())}
                 className="w-full p-2 border rounded"
                 required
               />
@@ -93,11 +94,11 @@ function EditRoom() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full p-2 border rounded"
-                rows="4"
+                required
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700">Price ($/night)</label>
+              <label className="block text-gray-700">Price</label>
               <input
                 type="number"
                 value={price}
@@ -105,39 +106,24 @@ function EditRoom() {
                 className="w-full p-2 border rounded"
                 required
                 min="0"
-                step="0.01"
-              />
-            </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">Capacity (guests)</label>
-              <input
-                type="number"
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                className="w-full p-2 border rounded"
-                required
-                min="1"
               />
             </div>
             <div className="mb-4">
               <label className="block text-gray-700">Availability</label>
               <input
                 type="checkbox"
-                checked={available}
-                onChange={(e) => setAvailable(e.target.checked)}
-                className="mr-2"
+                checked={availability}
+                onChange={(e) => setAvailability(e.target.checked)}
+                className="p-2"
               />
-              <span>Is Available</span>
             </div>
-            <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+            <button
+              type="submit"
+              className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+            >
               Update Room
             </button>
           </form>
-          <p className="mt-4 text-center">
-            <Link to="/dashboard/rooms" className="text-blue-500 hover:underline">
-              Back to Rooms
-            </Link>
-          </p>
         </div>
       </div>
     </div>

@@ -3,11 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { signup, verifyOtp, googleLogin } from "../../api/auth";
 
 function Signup() {
-  const [first_name, setFirstName] = useState("");
-  const [last_name, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirm_password, setConfirmPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -19,24 +19,18 @@ function Signup() {
     setError("");
     setMessage("");
 
-    if (password !== confirm_password) {
+    if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
 
     try {
-      await signup({
-        firstName: first_name,
-        lastName: last_name,
-        email,
-        password,
-      });
+      await signup({ firstName, lastName, email, password });
       setMessage("OTP sent to your email");
       setShowOtp(true);
     } catch (error) {
       console.error("Signup failed:", error);
-      const errorMessage =
-        error.response?.data?.message || "Signup failed. Please try again.";
+      const errorMessage = error.response?.data?.message || "Signup failed. Please try again.";
       setError(errorMessage);
     }
   };
@@ -52,8 +46,7 @@ function Signup() {
       setTimeout(() => navigate("/dashboard/rooms"), 2000);
     } catch (error) {
       console.error("OTP verification failed:", error);
-      const errorMessage =
-        error.response?.data?.message || "Invalid OTP. Please try again.";
+      const errorMessage = error.response?.data?.message || "Invalid OTP. Please try again.";
       setError(errorMessage);
     }
   };
@@ -84,8 +77,8 @@ function Signup() {
                   <label className="block text-gray-700">First Name</label>
                   <input
                     type="text"
-                    value={first_name}
-                    onChange={(e) => setFirstName(e.target.value)}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value.trim())}
                     className="w-full p-2 border rounded"
                     required
                   />
@@ -95,8 +88,8 @@ function Signup() {
                   <label className="block text-gray-700">Last Name</label>
                   <input
                     type="text"
-                    value={last_name}
-                    onChange={(e) => setLastName(e.target.value)}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value.trim())}
                     className="w-full p-2 border rounded"
                     required
                   />
@@ -107,7 +100,7 @@ function Signup() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.trim())}
                     className="w-full p-2 border rounded"
                     required
                   />
@@ -128,7 +121,7 @@ function Signup() {
                   <label className="block text-gray-700">Re-enter Password</label>
                   <input
                     type="password"
-                    value={confirm_password}
+                    value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full p-2 border rounded"
                     required
@@ -160,11 +153,20 @@ function Signup() {
           ) : (
             <form onSubmit={handleVerifyOtp}>
               <div className="mb-4">
+                <label className="block text-gray-700">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  className="w-full p-2 border rounded bg-gray-100"
+                  disabled
+                />
+              </div>
+              <div className="mb-4">
                 <label className="block text-gray-700">OTP</label>
                 <input
                   type="text"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={(e) => setOtp(e.target.value.trim())}
                   className="w-full p-2 border rounded"
                   required
                 />

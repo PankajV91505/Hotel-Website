@@ -10,7 +10,12 @@ import string
 import logging
 import traceback
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(
+    level=logging.DEBUG,
+    filename='app.log',
+    filemode='a',
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 logger = logging.getLogger(__name__)
 
 auth_bp = Blueprint('auth', __name__)
@@ -27,7 +32,11 @@ google = oauth.register(
 def google_login():
     logger.debug('Initiating Google OAuth login')
     redirect_uri = url_for('auth.google_callback', _external=True)
-    return google.authorize_redirect(redirect_uri)
+    try:
+        return google.authorize_redirect(redirect_uri)
+    except Exception as e:
+        logger.error(f'Google OAuth redirect error: {str(e)}\n{traceback.format_exc()}')
+        return jsonify({'message': 'Failed to initiate Google login'}), 500
 
 @auth_bp.route('/google/callback', methods=['GET'])
 def google_callback():
@@ -47,24 +56,28 @@ def google_callback():
         if not user:
             user = User(
                 email=email,
-                first_name=name.split()[0] if name else '',
-                last_name=' '.join(name.split()[1:]) if len(name.split()) > 1 else '',
-                password=''
+                first_name=name.split()[0] if name else 'Google',
+                last_name=' '.join(name.split()[1:]) if len(name.split()) > 1 else 'User',
+                password='',
+                is_google_user=True,
+                is_verified=True
             )
             db.session.add(user)
             try:
                 db.session.commit()
-                logger.info(f'New user created: {email}')
+                logger.info(f'New Google user created: {email}')
             except IntegrityError:
                 db.session.rollback()
                 logger.error(f'Duplicate email: {email}')
                 return jsonify({'message': 'Email already exists'}), 400
 
-        access_token = create_access_token(identity=user.id)
-        logger.info(f'Google login successful for {email}')
-        session['jwt_token'] = access_token
-        return redirect('http://localhost:5173/callback')
+        if not user.id:
+            logger.error(f'User ID is None for email: {email}')
+            return jsonify({'message': 'User creation failed'}), 500
 
+        access_token = create_access_token(identity=str(user.id))
+        logger.info(f'Google login successful for {email}, token: {access_token}')
+        return redirect(f'http://localhost:5173/callback?access_token={access_token}')
     except Exception as e:
         logger.error(f'Google OAuth error: {str(e)}\n{traceback.format_exc()}')
         return jsonify({'message': 'Authentication failed'}), 500
@@ -73,16 +86,22 @@ def google_callback():
 def get_token():
     token = session.pop('jwt_token', None)
     if not token:
+        logger.warning('No token found in session')
         return jsonify({'message': 'No token found'}), 400
+    logger.info(f'Retrieved token from session: {token}')
     return jsonify({'access_token': token}), 200
 
 @auth_bp.route('/signup', methods=['POST', 'OPTIONS'])
 def signup():
     if request.method == 'OPTIONS':
-        return jsonify({}), 200
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+        }
 
     logger.debug('Received signup request')
-    data = request.get_json()
+    data = request.get_json() or {}
     logger.debug(f'Signup data: {data}')
     first_name = data.get('firstName')
     last_name = data.get('lastName')
@@ -91,7 +110,7 @@ def signup():
 
     if not all([first_name, last_name, email, password]):
         logger.error(f'Missing required fields: {data}')
-        return jsonify({'message': 'Missing required fields'}), 400
+        return jsonify({'message': 'Missing required fields', 'fields': data}), 400
 
     try:
         user = User.query.filter_by(email=email).first()
@@ -101,39 +120,44 @@ def signup():
 
         otp = ''.join(random.choices(string.digits, k=6))
         logger.debug(f'Creating user: {email}, OTP: {otp}')
-
-        # ✅ FIXED: otp assigned after user is created
         user = User(
             first_name=first_name,
             last_name=last_name,
             email=email,
-            password=password
+            password=password,
+            otp=otp,
+            is_verified=False
         )
-        user.otp = otp
-
         db.session.add(user)
         db.session.commit()
-        logger.debug(f'User {email} added to database')
+        logger.debug(f'User {email} added to database, id: {user.id}')
 
         msg = Message('Your OTP Code', sender=Config.MAIL_USERNAME, recipients=[email])
         msg.body = f'Your OTP code is {otp}. Please use this to verify your account.'
-        mail.send(msg)
-        logger.info(f'OTP sent to {email}')
-        return jsonify({'message': 'OTP sent to your email'}), 201
-
+        try:
+            mail.send(msg)
+            logger.info(f'OTP sent to {email}')
+            return jsonify({'message': 'OTP sent to your email'}), 201
+        except Exception as e:
+            logger.error(f'Failed to send OTP: {str(e)}\n{traceback.format_exc()}')
+            db.session.rollback()
+            return jsonify({'message': 'Failed to send OTP'}), 500
     except Exception as e:
         logger.error(f'Error during signup: {str(e)}\n{traceback.format_exc()}')
         db.session.rollback()
         return jsonify({'message': 'Failed to sign up'}), 500
 
-
 @auth_bp.route('/verify-otp', methods=['POST', 'OPTIONS'])
 def verify_otp():
     if request.method == 'OPTIONS':
-        return jsonify({}), 200
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+        }
 
     logger.debug('Received OTP verification request')
-    data = request.get_json()
+    data = request.get_json() or {}
     logger.debug(f'OTP verification data: {data}')
     email = data.get('email')
     otp = data.get('otp')
@@ -148,21 +172,25 @@ def verify_otp():
         return jsonify({'message': 'Invalid OTP'}), 400
 
     user.otp = None
+    user.is_verified = True
     db.session.commit()
-    access_token = create_access_token(identity=user.id)
-    logger.info(f'OTP verified for {email}')
+    access_token = create_access_token(identity=str(user.id))
+    logger.info(f'OTP verified for {email}, token: {access_token}')
     return jsonify({'message': 'OTP verified', 'access_token': access_token}), 200
 
 @auth_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     if request.method == 'OPTIONS':
-        return jsonify({}), 200
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+        }
 
     try:
         logger.debug('Received login request')
-        data = request.get_json()
+        data = request.get_json() or {}
         logger.debug(f'Login data: {data}')
-
         email = data.get('email')
         password = data.get('password')
 
@@ -171,40 +199,49 @@ def login():
             return jsonify({'message': 'Email and password are required'}), 400
 
         user = User.query.filter_by(email=email).first()
-
         if not user:
             logger.warning(f'User not found: {email}')
             return jsonify({'message': 'Invalid email or password'}), 401
-
+        if user.is_google_user:
+            logger.warning(f'Google user attempted password login: {email}')
+            return jsonify({'message': 'Please use Google login for this account'}), 403
         if not user.check_password(password):
             logger.warning(f'Wrong password attempt for: {email}')
             return jsonify({'message': 'Invalid email or password'}), 401
-
-        if user.otp:
+        if not user.is_verified:
             logger.warning(f'Unverified account: {email}')
             return jsonify({'message': 'Account not verified. Please verify your OTP.'}), 403
 
-        access_token = create_access_token(identity=user.id)
-        logger.info(f'Login successful for {email}')
+        if not user.id:
+            logger.error(f'User ID is None for email: {email}')
+            return jsonify({'message': 'Invalid user data'}), 500
 
+        access_token = create_access_token(identity=str(user.id))
+        logger.info(f'Login successful for {email}, token: {access_token}')
         return jsonify({
             'message': 'Login successful',
             'access_token': access_token
         }), 200
-
     except Exception as e:
         logger.error(f'Login error: {str(e)}\n{traceback.format_exc()}')
         return jsonify({'message': 'Something went wrong. Please try again later.'}), 500
 
-
 @auth_bp.route('/forgot-password', methods=['POST', 'OPTIONS'])
 def forgot_password():
     if request.method == 'OPTIONS':
-        return jsonify({}), 200
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+        }
 
     logger.debug('Received forgot password request')
-    data = request.get_json()
+    data = request.get_json() or {}
     email = data.get('email')
+
+    if not email:
+        logger.error('Missing email field')
+        return jsonify({'message': 'Missing email'}), 400
 
     user = User.query.filter_by(email=email).first()
     if not user:
@@ -213,47 +250,74 @@ def forgot_password():
 
     otp = ''.join(random.choices(string.digits, k=6))
     user.otp = otp
-    db.session.commit()
-
-    msg = Message('Password Reset OTP', sender=Config.MAIL_USERNAME, recipients=[email])
-    msg.body = f'Your OTP for password reset is {otp}.'
-    mail.send(msg)
-    logger.info(f'Password reset OTP sent to {email}')
-    return jsonify({'message': 'OTP sent to your email'}), 200
+    try:
+        db.session.commit()
+        msg = Message('Password Reset OTP', sender=Config.MAIL_USERNAME, recipients=[email])
+        msg.body = f'Your OTP for password reset is {otp}.'
+        mail.send(msg)
+        logger.info(f'Password reset OTP sent to {email}')
+        return jsonify({'message': 'OTP sent to your email'}), 200
+    except Exception as e:
+        logger.error(f'Error sending OTP: {str(e)}\n{traceback.format_exc()}')
+        db.session.rollback()
+        return jsonify({'message': f'Failed to send OTP: {str(e)}'}), 500
 
 @auth_bp.route('/reset-password', methods=['POST', 'OPTIONS'])
 def reset_password():
     if request.method == 'OPTIONS':
-        return jsonify({}), 200
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'POST,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization'
+        }
 
     logger.debug('Received reset password request')
-    data = request.get_json()
+    data = request.get_json() or {}
     email = data.get('email')
     otp = data.get('otp')
     new_password = data.get('new_password')
+
+    if not all([email, otp, new_password]):
+        logger.error(f'Missing required fields: {data}')
+        return jsonify({'message': 'Missing email, OTP, or new password'}), 400
 
     user = User.query.filter_by(email=email).first()
     if not user or user.otp != otp:
         logger.warning(f'Invalid OTP for password reset: {email}')
         return jsonify({'message': 'Invalid OTP'}), 400
 
-    user.set_password(new_password)
-    user.otp = None
-    db.session.commit()
-    logger.info(f'Password reset successful for {email}')
-    return jsonify({'message': 'Password reset successful'}), 200
+    try:
+        user.set_password(new_password)
+        user.otp = None
+        user.is_verified = True
+        db.session.commit()
+        logger.info(f'Password reset successful for {email}')
+        return jsonify({'message': 'Password reset successful'}), 200
+    except Exception as e:
+        logger.error(f'Error resetting password: {str(e)}\n{traceback.format_exc()}')
+        db.session.rollback()
+        return jsonify({'message': f'Failed to reset password: {str(e)}'}), 500
 
 @auth_bp.route('/me', methods=['GET'])
 @jwt_required()
 def get_user_info():
-    user_id = get_jwt_identity()
-    user = User.query.get(user_id)
-    if not user:
-        logger.warning(f'User not found: {user_id}')
-        return jsonify({'message': 'User not found'}), 404
-    return jsonify({
-        'first_name': user.first_name,
-        'last_name': user.last_name,
-        'email': user.email,
-        'is_admin': user.is_admin
-    }), 200
+    try:
+        user_id = get_jwt_identity()
+        logger.debug(f'Fetching user info for user_id: {user_id}')
+        if not user_id or not isinstance(user_id, str):
+            logger.error(f'Invalid user_id type: {type(user_id)}, value: {user_id}')
+            return jsonify({'message': 'Invalid token: Subject must be a string'}), 422
+        user = User.query.get(int(user_id))
+        if not user:
+            logger.warning(f'User not found: {user_id}')
+            return jsonify({'message': 'User not found'}), 404
+        logger.info(f'User info retrieved for {user.email}')
+        return jsonify({
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'email': user.email,
+            'is_admin': user.is_admin
+        }), 200
+    except Exception as e:
+        logger.error(f'Error in get_user_info: {str(e)}\n{traceback.format_exc()}')
+        return jsonify({'message': f'Failed to fetch user info: {str(e)}'}), 500

@@ -1,28 +1,26 @@
-import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 function Callback() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const fetchToken = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/api/auth/get-token', {
-          withCredentials: true
-        });
-        const token = response.data.access_token;
-        localStorage.setItem('token', token);
-        navigate('/dashboard/rooms');
-      } catch (error) {
-        console.error('Failed to fetch token:', error);
-        navigate('/login');
-      }
-    };
-    fetchToken();
-  }, [navigate]);
+    const params = new URLSearchParams(location.search);
+    const accessToken = params.get("access_token");
+    if (accessToken) {
+      localStorage.setItem("token", accessToken);
+      navigate("/dashboard/rooms");
+    } else {
+      navigate("/login");
+    }
+  }, [navigate, location]);
 
-  return <div>Loading...</div>;
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <p>Redirecting...</p>
+    </div>
+  );
 }
 
 export default Callback;

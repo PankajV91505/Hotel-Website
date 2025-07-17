@@ -8,24 +8,23 @@ const API = axios.create({
   },
 });
 
-// ✅ Automatically attach token if available
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+  console.log("Attaching token to request:", token); // Debug
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    console.warn("No token found in localStorage");
   }
   return config;
+}, (error) => {
+  console.error("Request interceptor error:", error);
+  return Promise.reject(error);
 });
 
-// ------------------------ AUTH ------------------------
-
+// AUTH
 export const signup = async ({ firstName, lastName, email, password }) => {
-  const res = await API.post("/auth/signup", {
-    firstName,
-    lastName,
-    email,
-    password,
-  });
+  const res = await API.post("/auth/signup", { firstName, lastName, email, password });
   return res.data;
 };
 
@@ -34,7 +33,6 @@ export const verifyOtp = async (email, otp) => {
   return res.data;
 };
 
-// ✅ Fixed: accept object input like { email, password }
 export const login = async ({ email, password }) => {
   const res = await API.post("/auth/login", { email, password });
   return res.data;
@@ -46,11 +44,7 @@ export const forgotPassword = async (email) => {
 };
 
 export const resetPassword = async (email, otp, new_password) => {
-  const res = await API.post("/auth/reset-password", {
-    email,
-    otp,
-    new_password,
-  });
+  const res = await API.post("/auth/reset-password", { email, otp, new_password });
   return res.data;
 };
 
@@ -58,8 +52,7 @@ export const googleLogin = async () => {
   window.location.href = `${API.defaults.baseURL}/auth/google`;
 };
 
-// ------------------------ ROOMS ------------------------
-
+// ROOMS
 export const getRooms = async () => {
   const res = await API.get("/rooms");
   return res.data;
@@ -82,5 +75,16 @@ export const updateRoom = async (id, roomData) => {
 
 export const deleteRoom = async (id) => {
   const res = await API.delete(`/rooms/${id}`);
+  return res.data;
+};
+
+// BOOKINGS
+export const bookRoom = async ({ room_id, start_date, end_date }) => {
+  const res = await API.post("/bookings", { room_id, start_date, end_date });
+  return res.data;
+};
+
+export const getMyBookings = async () => {
+  const res = await API.get("/bookings/my-bookings");
   return res.data;
 };
