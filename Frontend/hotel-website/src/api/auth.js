@@ -10,7 +10,7 @@ const API = axios.create({
 
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  console.log("Attaching token to request:", token); // Debug
+  console.log("Attaching token to request:", token);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   } else {
@@ -79,8 +79,8 @@ export const deleteRoom = async (id) => {
 };
 
 // BOOKINGS
-export const bookRoom = async ({ room_id, start_date, end_date }) => {
-  const res = await API.post("/bookings", { room_id, start_date, end_date });
+export const bookRoom = async ({ room_id, start_date, end_date, guest_name, government_id, phone_number }) => {
+  const res = await API.post("/bookings", { room_id, start_date, end_date, guest_name, government_id, phone_number });
   return res.data;
 };
 

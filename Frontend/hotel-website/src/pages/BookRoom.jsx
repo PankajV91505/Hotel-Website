@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getRooms, bookRoom } from "../api/auth";
 
 function BookRoom() {
@@ -7,29 +7,43 @@ function BookRoom() {
   const [roomId, setRoomId] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [guestName, setGuestName] = useState("");
+  const [governmentId, setGovernmentId] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
+  const { id } = useParams();
 
   useEffect(() => {
     const fetchRooms = async () => {
       try {
         const response = await getRooms();
         setRooms(response);
+        if (id) {
+          setRoomId(id);
+        }
       } catch (error) {
         console.error("Error fetching rooms:", error);
         setError("Failed to fetch rooms");
       }
     };
     fetchRooms();
-  }, []);
+  }, [id]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
     try {
-      const response = await bookRoom({ room_id: roomId, start_date: startDate, end_date: endDate });
+      const response = await bookRoom({
+        room_id: roomId,
+        start_date: startDate,
+        end_date: endDate,
+        guest_name: guestName,
+        government_id: governmentId,
+        phone_number: phoneNumber
+      });
       setMessage(response.message);
       setTimeout(() => navigate("/dashboard/rooms"), 2000);
     } catch (error) {
@@ -55,6 +69,7 @@ function BookRoom() {
                 onChange={(e) => setRoomId(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
+                disabled={!!id}
               >
                 <option value="">Select a room</option>
                 {rooms.filter(room => room.availability).map(room => (
@@ -63,23 +78,57 @@ function BookRoom() {
               </select>
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700">Start Date</label>
+              <label className="block text-gray-700">Guest Name</label>
               <input
-                type="datetime-local"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                type="text"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value.trim())}
                 className="w-full p-2 border rounded"
                 required
               />
             </div>
             <div className="mb-4">
-              <label className="block text-gray-700">End Date</label>
+              <label className="block text-gray-700">Government ID (e.g., Aadhaar, Passport)</label>
               <input
-                type="datetime-local"
+                type="text"
+                value={governmentId}
+                onChange={(e) => setGovernmentId(e.target.value.trim())}
+                className="w-full p-2 border rounded"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Phone Number</label>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value.trim())}
+                className="w-full p-2 border rounded"
+                required
+                pattern="[0-9]{10}"
+                placeholder="1234567890"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Check-in Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full p-2 border rounded"
+                required
+                min={new Date().toISOString().split('T')[0]}
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Check-out Date</label>
+              <input
+                type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
                 className="w-full p-2 border rounded"
                 required
+                min={startDate || new Date().toISOString().split('T')[0]}
               />
             </div>
             <button

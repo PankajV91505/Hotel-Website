@@ -8,6 +8,9 @@ class Booking(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('rooms.id'), nullable=False)
     start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
+    guest_name = db.Column(db.String(100), nullable=False)
+    government_id = db.Column(db.String(50), nullable=False)
+    phone_number = db.Column(db.String(15), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship('User', backref='bookings')

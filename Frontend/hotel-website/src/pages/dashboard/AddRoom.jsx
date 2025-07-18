@@ -6,6 +6,10 @@ function AddRoom() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [roomType, setRoomType] = useState("");
+  const [isAc, setIsAc] = useState(false);
+  const [hasParking, setHasParking] = useState(false);
+  const [availability, setAvailability] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -20,17 +24,17 @@ function AddRoom() {
           navigate("/login");
           return;
         }
-        console.log("Sending token:", token); // Debug
+        console.log("Sending token:", token);
         const response = await fetch("http://localhost:5000/api/auth/me", {
           headers: { Authorization: `Bearer ${token}` }
         });
-        console.log("Response status:", response.status); // Debug
+        console.log("Response status:", response.status);
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || "Failed to verify admin status");
         }
         const data = await response.json();
-        console.log("User data:", data); // Debug
+        console.log("User data:", data);
         setIsAdmin(data.is_admin);
         if (!data.is_admin) {
           setError("Only admins can add rooms");
@@ -44,12 +48,25 @@ function AddRoom() {
     checkAdmin();
   }, [navigate]);
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
     try {
-      const response = await createRoom({ name, description, price });
+      const response = await createRoom({
+        name,
+        description,
+        price,
+        room_type: roomType,
+        is_ac: isAc,
+        has_parking: hasParking,
+        availability
+      });
       setMessage(response.message);
       setTimeout(() => navigate("/dashboard/rooms"), 2000);
     } catch (error) {
@@ -73,7 +90,15 @@ function AddRoom() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-6">Add Room</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-3xl font-bold">Add Room</h1>
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 text-white p-2 rounded hover:bg-red-600"
+          >
+            Logout
+          </button>
+        </div>
         {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
         {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
 
@@ -107,6 +132,50 @@ function AddRoom() {
                 className="w-full p-2 border rounded"
                 required
                 min="0"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Room Type</label>
+              <select
+                value={roomType}
+                onChange={(e) => setRoomType(e.target.value)}
+                className="w-full p-2 border rounded"
+                required
+              >
+                <option value="">Select Room Type</option>
+                <option value="Single">Single</option>
+                <option value="Double">Double</option>
+                <option value="Twin">Twin</option>
+                <option value="Queen">Queen</option>
+                <option value="King">King</option>
+                <option value="Suites">Suites</option>
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Air Conditioning</label>
+              <input
+                type="checkbox"
+                checked={isAc}
+                onChange={(e) => setIsAc(e.target.checked)}
+                className="p-2"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Parking Available</label>
+              <input
+                type="checkbox"
+                checked={hasParking}
+                onChange={(e) => setHasParking(e.target.checked)}
+                className="p-2"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Availability</label>
+              <input
+                type="checkbox"
+                checked={availability}
+                onChange={(e) => setAvailability(e.target.checked)}
+                className="p-2"
               />
             </div>
             <button

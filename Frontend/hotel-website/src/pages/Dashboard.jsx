@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getRooms, getMyBookings } from "../api/auth";
+import { getRooms, getMyBookings, deleteRoom } from "../api/auth";
 
 function Dashboard() {
   const [rooms, setRooms] = useState([]);
@@ -60,10 +60,13 @@ function Dashboard() {
               <h3 className="text-xl font-semibold">{room.name}</h3>
               <p>{room.description}</p>
               <p className="font-bold">Price: ${room.price}</p>
+              <p>Type: {room.room_type}</p>
+              <p>AC: {room.is_ac ? "Yes" : "No"}</p>
+              <p>Parking: {room.has_parking ? "Yes" : "No"}</p>
               <p>Status: {room.availability ? "Available" : "Booked"}</p>
               {room.availability && (
                 <Link
-                  to="/dashboard/book-room"
+                  to={`/dashboard/book-room/${room.id}`}
                   className="mt-2 inline-block bg-green-500 text-white p-2 rounded hover:bg-green-600"
                 >
                   Book Now
@@ -104,6 +107,9 @@ function Dashboard() {
             {bookings.map(booking => (
               <div key={booking.id} className="bg-white p-4 rounded shadow-md">
                 <h3 className="text-xl font-semibold">{booking.room_name}</h3>
+                <p>Guest: {booking.guest_name}</p>
+                <p>Government ID: {booking.government_id}</p>
+                <p>Phone: {booking.phone_number}</p>
                 <p>Start: {new Date(booking.start_date).toLocaleString()}</p>
                 <p>End: {new Date(booking.end_date).toLocaleString()}</p>
                 <p>Booked On: {new Date(booking.created_at).toLocaleString()}</p>

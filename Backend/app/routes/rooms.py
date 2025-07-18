@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 rooms_bp = Blueprint('rooms', __name__)
 
+VALID_ROOM_TYPES = ['Single', 'Double', 'Twin', 'Queen', 'King', 'Suites']
+
 @rooms_bp.route('', methods=['GET'])
 def get_rooms():
     logger.debug('Fetching all rooms')
@@ -24,7 +26,11 @@ def get_rooms():
         'name': room.name,
         'description': room.description,
         'price': room.price,
-        'availability': room.availability
+        'room_type': room.room_type,
+        'is_ac': room.is_ac,
+        'has_parking': room.has_parking,
+        'availability': room.availability,
+        'created_at': room.created_at.isoformat()
     } for room in rooms]), 200
 
 @rooms_bp.route('', methods=['POST', 'OPTIONS'])
@@ -47,14 +53,29 @@ def create_room():
     name = data.get('name')
     description = data.get('description')
     price = data.get('price')
+    room_type = data.get('room_type')
+    is_ac = data.get('is_ac', False)
+    has_parking = data.get('has_parking', False)
     availability = data.get('availability', True)
 
-    if not all([name, description, price]):
+    if not all([name, description, price, room_type]):
         logger.error(f'Missing required fields: {data}')
         return jsonify({'message': 'Missing required fields', 'fields': data}), 400
 
+    if room_type not in VALID_ROOM_TYPES:
+        logger.error(f'Invalid room type: {room_type}')
+        return jsonify({'message': f'Invalid room type. Must be one of: {", ".join(VALID_ROOM_TYPES)}'}), 400
+
     try:
-        room = Room(name=name, description=description, price=price, availability=availability)
+        room = Room(
+            name=name,
+            description=description,
+            price=price,
+            room_type=room_type,
+            is_ac=is_ac,
+            has_parking=has_parking,
+            availability=availability
+        )
         db.session.add(room)
         db.session.commit()
         logger.info(f'Room created: {name}')
@@ -76,7 +97,11 @@ def get_room(id):
         'name': room.name,
         'description': room.description,
         'price': room.price,
-        'availability': room.availability
+        'room_type': room.room_type,
+        'is_ac': room.is_ac,
+        'has_parking': room.has_parking,
+        'availability': room.availability,
+        'created_at': room.created_at.isoformat()
     }), 200
 
 @rooms_bp.route('/<int:id>', methods=['PUT', 'OPTIONS'])
@@ -101,9 +126,18 @@ def update_room(id):
         return jsonify({'message': 'Room not found'}), 404
 
     data = request.get_json() or {}
+    room_type = data.get('room_type', room.room_type)
+
+    if room_type and room_type not in VALID_ROOM_TYPES:
+        logger.error(f'Invalid room type: {room_type}')
+        return jsonify({'message': f'Invalid room type. Must be one of: {", ".join(VALID_ROOM_TYPES)}'}), 400
+
     room.name = data.get('name', room.name)
     room.description = data.get('description', room.description)
     room.price = data.get('price', room.price)
+    room.room_type = room_type
+    room.is_ac = data.get('is_ac', room.is_ac)
+    room.has_parking = data.get('has_parking', room.has_parking)
     room.availability = data.get('availability', room.availability)
 
     try:

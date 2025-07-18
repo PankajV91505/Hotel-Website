@@ -6,7 +6,6 @@ import Login from './pages/auth/Login.jsx';
 import Signup from './pages/auth/Signup.jsx';
 import ForgotPassword from './pages/auth/ForgotPassword.jsx';
 import ResetPassword from './pages/auth/ResetPassword.jsx';
-import Rooms from './pages/dashboard/Rooms.jsx';
 import AddRoom from './pages/dashboard/AddRoom.jsx';
 import EditRoom from './pages/dashboard/EditRoom.jsx';
 import Callback from './pages/Callback.jsx';
@@ -24,12 +23,12 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/signup" element={<Signup />} errorElement={<ErrorBoundary />} />
         <Route path="/forgot-password" element={<ForgotPassword />} errorElement={<ErrorBoundary />} />
         <Route path="/reset-password" element={<ResetPassword />} errorElement={<ErrorBoundary />} />
-        <Route path="/dashboard/rooms" element={<Rooms />} errorElement={<ErrorBoundary />} />
+        <Route path="/dashboard/rooms" element={<Dashboard />} errorElement={<ErrorBoundary />} />
         <Route path="/dashboard/add-room" element={<AddRoom />} errorElement={<ErrorBoundary />} />
         <Route path="/dashboard/edit-room/:id" element={<EditRoom />} errorElement={<ErrorBoundary />} />
-        <Route path="/callback" element={<Callback />} errorElement={<ErrorBoundary />} />
+        <Route path="/dashboard/book-room/:id" element={<BookRoom />} errorElement={<ErrorBoundary />} />
         <Route path="/book-room" element={<BookRoom />} errorElement={<ErrorBoundary />} />
-        <Route path="/dashboard" element={<Dashboard />} errorElement={<ErrorBoundary />} />
+        <Route path="/callback" element={<Callback />} errorElement={<ErrorBoundary />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

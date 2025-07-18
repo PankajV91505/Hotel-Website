@@ -6,6 +6,9 @@ function EditRoom() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
+  const [roomType, setRoomType] = useState("");
+  const [isAc, setIsAc] = useState(false);
+  const [hasParking, setHasParking] = useState(false);
   const [availability, setAvailability] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -31,6 +34,9 @@ function EditRoom() {
         setName(roomResponse.name);
         setDescription(roomResponse.description);
         setPrice(roomResponse.price);
+        setRoomType(roomResponse.room_type);
+        setIsAc(roomResponse.is_ac);
+        setHasParking(roomResponse.has_parking);
         setAvailability(roomResponse.availability);
         setIsAdmin(userResponse.is_admin);
         if (!userResponse.is_admin) setError("Only admins can edit rooms");
@@ -48,7 +54,15 @@ function EditRoom() {
     setError("");
     setMessage("");
     try {
-      const response = await updateRoom(id, { name, description, price, availability });
+      const response = await updateRoom(id, {
+        name,
+        description,
+        price,
+        room_type: roomType,
+        is_ac: isAc,
+        has_parking: hasParking,
+        availability
+      });
       setMessage(response.message);
       setTimeout(() => navigate("/dashboard/rooms"), 2000);
     } catch (error) {
@@ -106,6 +120,41 @@ function EditRoom() {
                 className="w-full p-2 border rounded"
                 required
                 min="0"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Room Type</label>
+              <select
+                value={roomType}
+                onChange={(e) => setRoomType(e.target.value)}
+                className="w-full p-2 border rounded"
+                required
+              >
+                <option value="">Select Room Type</option>
+                <option value="Single">Single</option>
+                <option value="Double">Double</option>
+                <option value="Twin">Twin</option>
+                <option value="Queen">Queen</option>
+                <option value="King">King</option>
+                <option value="Suites">Suites</option>
+              </select>
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Air Conditioning</label>
+              <input
+                type="checkbox"
+                checked={isAc}
+                onChange={(e) => setIsAc(e.target.checked)}
+                className="p-2"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-700">Parking Available</label>
+              <input
+                type="checkbox"
+                checked={hasParking}
+                onChange={(e) => setHasParking(e.target.checked)}
+                className="p-2"
               />
             </div>
             <div className="mb-4">
