@@ -1,5 +1,7 @@
+// src/api/auth.js
 import axios from "axios";
 
+// Create an axios instance
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
   withCredentials: true,
@@ -8,19 +10,22 @@ const API = axios.create({
   },
 });
 
-API.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
-  console.log("Attaching token to request:", token);
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  } else {
-    console.warn("No token found in localStorage");
+// Attach token to each request
+API.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn("No token found in localStorage");
+    }
+    return config;
+  },
+  (error) => {
+    console.error("Request interceptor error:", error);
+    return Promise.reject(error);
   }
-  return config;
-}, (error) => {
-  console.error("Request interceptor error:", error);
-  return Promise.reject(error);
-});
+);
 
 // AUTH
 export const signup = async ({ firstName, lastName, email, password }) => {
@@ -58,13 +63,18 @@ export const getRooms = async () => {
   return res.data;
 };
 
-export const createRoom = async (roomData) => {
-  const res = await API.post("/rooms", roomData);
+export const getRoom = async (id) => {
+  const res = await API.get(`/rooms/${id}`);
   return res.data;
 };
 
-export const getRoom = async (id) => {
-  const res = await API.get(`/rooms/${id}`);
+export const getRoomById = async (id) => {
+  // Alias for getRoom (used in BookRoom.jsx)
+  return await API.get(`/rooms/${id}`);
+};
+
+export const createRoom = async (roomData) => {
+  const res = await API.post("/rooms", roomData);
   return res.data;
 };
 
@@ -79,8 +89,17 @@ export const deleteRoom = async (id) => {
 };
 
 // BOOKINGS
-export const bookRoom = async ({ room_id, start_date, end_date, guest_name, government_id, phone_number }) => {
-  const res = await API.post("/bookings", { room_id, start_date, end_date, guest_name, government_id, phone_number });
+export const bookRoom = async ({ room_id, start_date, end_date, guest_name, government_id, phone_number, amount, payment_id }) => {
+  const res = await API.post("/bookings", {
+    room_id,
+    start_date,
+    end_date,
+    guest_name,
+    government_id,
+    phone_number,
+    amount,
+    payment_id,
+  });
   return res.data;
 };
 

@@ -2,7 +2,6 @@
 
 import os
 from dotenv import load_dotenv
-
 load_dotenv()  # Load .env file
 
 class Config:
@@ -29,3 +28,4 @@ class Config:
 
     # For local dev: allow insecure transport (only for development!)
     os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    
