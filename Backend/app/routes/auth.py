@@ -60,7 +60,9 @@ def google_callback():
                 last_name=' '.join(name.split()[1:]) if len(name.split()) > 1 else 'User',
                 password='',
                 is_google_user=True,
-                is_verified=True
+                is_verified=True,
+                phone_number='',
+                location=''
             )
             db.session.add(user)
             try:
@@ -126,7 +128,9 @@ def signup():
             email=email,
             password=password,
             otp=otp,
-            is_verified=False
+            is_verified=False,
+            phone_number='',
+            location=''
         )
         db.session.add(user)
         db.session.commit()
@@ -298,9 +302,16 @@ def reset_password():
         db.session.rollback()
         return jsonify({'message': f'Failed to reset password: {str(e)}'}), 500
 
-@auth_bp.route('/me', methods=['GET'])
+@auth_bp.route('/me', methods=['GET', 'OPTIONS'])
 @jwt_required()
 def get_user_info():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'GET,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Credentials': 'true'
+        }
     try:
         user_id = get_jwt_identity()
         logger.debug(f'Fetching user info for user_id: {user_id}')
@@ -316,8 +327,49 @@ def get_user_info():
             'first_name': user.first_name,
             'last_name': user.last_name,
             'email': user.email,
+            'phone_number': user.phone_number or '',
+            'location': user.location or '',
             'is_admin': user.is_admin
         }), 200
     except Exception as e:
         logger.error(f'Error in get_user_info: {str(e)}\n{traceback.format_exc()}')
         return jsonify({'message': f'Failed to fetch user info: {str(e)}'}), 500
+@auth_bp.route('/update-profile', methods=['PUT', 'OPTIONS'])
+@jwt_required()
+def update_profile():
+    if request.method == 'OPTIONS':
+        return jsonify({}), 200, {
+            'Access-Control-Allow-Origin': 'http://localhost:5173',
+            'Access-Control-Allow-Methods': 'PUT,OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+            'Access-Control-Allow-Credentials': 'true'
+        }
+
+    try:
+        user_id = get_jwt_identity()
+        logger.debug(f'Received update-profile request for user_id: {user_id}')
+        user = User.query.get(int(user_id))
+
+        if not user:
+            logger.warning(f'User not found for update-profile: {user_id}')
+            return jsonify({'message': 'User not found'}), 404
+
+        data = request.get_json() or {}
+        logger.debug(f'Update data: {data}')
+
+        phone_number = data.get('phone_number')
+        location = data.get('location')
+
+        if phone_number:
+            user.phone_number = phone_number
+        if location:
+            user.location = location
+
+        db.session.commit()
+        logger.info(f'User profile updated successfully for {user.email}')
+        return jsonify({'message': 'Profile updated successfully'}), 200
+
+    except Exception as e:
+        logger.error(f'Error updating profile: {str(e)}\n{traceback.format_exc()}')
+        db.session.rollback()
+        return jsonify({'message': 'Failed to update profile'}), 500

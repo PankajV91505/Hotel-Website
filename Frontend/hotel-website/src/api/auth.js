@@ -1,4 +1,3 @@
-// src/api/auth.js
 import axios from "axios";
 
 // Create an axios instance
@@ -57,6 +56,11 @@ export const googleLogin = async () => {
   window.location.href = `${API.defaults.baseURL}/auth/google`;
 };
 
+export const getUserDetails = async () => {
+  const res = await API.get("/auth/me");
+  return res.data;
+};
+
 // ROOMS
 export const getRooms = async () => {
   const res = await API.get("/rooms");
@@ -105,5 +109,14 @@ export const bookRoom = async ({ room_id, start_date, end_date, guest_name, gove
 
 export const getMyBookings = async () => {
   const res = await API.get("/bookings/my-bookings");
+  return res.data;
+};
+
+// UPDATE PROFILE
+export const updateUserDetails = async ({ phoneNumber, location }) => {
+  const res = await API.put("/auth/update-profile", {
+    phone_number: phoneNumber,
+    location: location,
+  });
   return res.data;
 };

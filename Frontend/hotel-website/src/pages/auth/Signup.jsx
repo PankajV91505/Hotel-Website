@@ -1,18 +1,40 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signup, verifyOtp, googleLogin } from "../../api/auth";
+import { toast } from "react-toastify";
 
 function Signup() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [location, setLocation] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [showOtp, setShowOtp] = useState(false);
+
   const navigate = useNavigate();
+
+  // Detect user's current location and auto-fill
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const coords = `${pos.coords.latitude},${pos.coords.longitude}`;
+          setLocation(coords);
+        },
+        (err) => {
+          console.warn("Geolocation error:", err);
+          toast.warn("Unable to fetch your location.");
+        }
+      );
+    } else {
+      toast.warn("Geolocation is not supported by your browser.");
+    }
+  }, []);
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -25,7 +47,7 @@ function Signup() {
     }
 
     try {
-      await signup({ firstName, lastName, email, password });
+      await signup({ firstName, lastName, email, password, phoneNumber, location });
       setMessage("OTP sent to your email");
       setShowOtp(true);
     } catch (error) {
@@ -39,11 +61,13 @@ function Signup() {
     e.preventDefault();
     setError("");
     setMessage("");
+
     try {
       const response = await verifyOtp(email, otp);
       localStorage.setItem("token", response.access_token);
-      setMessage("Signup successful! Redirecting to dashboard...");
-      setTimeout(() => navigate("/dashboard/rooms"), 2000);
+      setMessage("Signup successful! Redirecting to profile...");
+      toast.success("Signup complete");
+      setTimeout(() => navigate("/profile"), 2000);
     } catch (error) {
       console.error("OTP verification failed:", error);
       const errorMessage = error.response?.data?.message || "Invalid OTP. Please try again.";
@@ -66,77 +90,96 @@ function Signup() {
         <h1 className="text-3xl font-bold text-center mb-6">
           {showOtp ? "Verify OTP" : "Sign Up"}
         </h1>
+
         {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
         {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
 
         <div className="bg-white p-6 rounded shadow-md">
           {!showOtp ? (
-            <>
-              <form onSubmit={handleSignup}>
-                <div className="mb-4">
-                  <label className="block text-gray-700">First Name</label>
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value.trim())}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
+            <form onSubmit={handleSignup}>
+              <div className="mb-4">
+                <label className="block text-gray-700">First Name</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value.trim())}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
 
-                <div className="mb-4">
-                  <label className="block text-gray-700">Last Name</label>
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value.trim())}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
+              <div className="mb-4">
+                <label className="block text-gray-700">Last Name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value.trim())}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
 
-                <div className="mb-4">
-                  <label className="block text-gray-700">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value.trim())}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
+              <div className="mb-4">
+                <label className="block text-gray-700">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value.trim())}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
 
-                <div className="mb-4">
-                  <label className="block text-gray-700">Password</label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
+              <div className="mb-4">
+                <label className="block text-gray-700">Phone Number</label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
 
-                <div className="mb-4">
-                  <label className="block text-gray-700">Re-enter Password</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
+              <div className="mb-4">
+                <label className="block text-gray-700">Location</label>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
 
-                <button
-                  type="submit"
-                  className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-                >
-                  Sign Up
-                </button>
-              </form>
+              <div className="mb-4">
+                <label className="block text-gray-700">Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-gray-700">Re-enter Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full p-2 border rounded"
+                  required
+                />
+              </div>
+
+              <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
+                Sign Up
+              </button>
 
               <button
+                type="button"
                 onClick={handleGoogleSignup}
                 className="w-full bg-red-500 text-white p-2 rounded mt-4 hover:bg-red-600"
               >
@@ -149,7 +192,7 @@ function Signup() {
                   Login
                 </Link>
               </p>
-            </>
+            </form>
           ) : (
             <form onSubmit={handleVerifyOtp}>
               <div className="mb-4">
@@ -157,8 +200,8 @@ function Signup() {
                 <input
                   type="email"
                   value={email}
-                  className="w-full p-2 border rounded bg-gray-100"
                   disabled
+                  className="w-full p-2 border rounded bg-gray-100"
                 />
               </div>
               <div className="mb-4">
@@ -166,15 +209,12 @@ function Signup() {
                 <input
                   type="text"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.trim())}
+                  onChange={(e) => setOtp(e.target.value)}
                   className="w-full p-2 border rounded"
                   required
                 />
               </div>
-              <button
-                type="submit"
-                className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-              >
+              <button type="submit" className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">
                 Verify OTP
               </button>
             </form>

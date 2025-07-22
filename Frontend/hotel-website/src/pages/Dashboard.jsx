@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getRooms, getMyBookings, deleteRoom } from "../api/auth";
+import { getRooms, getMyBookings, deleteRoom, getUserDetails } from "../api/auth";
+import { toast } from 'react-toastify';
 
 function Dashboard() {
   const [rooms, setRooms] = useState([]);
@@ -21,16 +22,15 @@ function Dashboard() {
         const [roomsResponse, bookingsResponse, userResponse] = await Promise.all([
           getRooms(),
           getMyBookings(),
-          fetch("http://localhost:5000/api/auth/me", {
-            headers: { Authorization: `Bearer ${token}` }
-          }).then(res => res.json())
+          getUserDetails()
         ]);
         setRooms(roomsResponse);
         setBookings(bookingsResponse);
         setIsAdmin(userResponse.is_admin);
       } catch (error) {
         console.error("Error fetching data:", error);
-        setError("Failed to fetch data");
+        setError("Failed to fetch data: " + (error.response?.data?.message || error.message));
+        toast.error("Failed to fetch data: " + (error.response?.data?.message || error.message));
       }
     };
     fetchData();
@@ -59,7 +59,7 @@ function Dashboard() {
             <div key={room.id} className="bg-white p-4 rounded shadow-md">
               <h3 className="text-xl font-semibold">{room.name}</h3>
               <p>{room.description}</p>
-              <p className="font-bold">Price: ${room.price}</p>
+              <p className="font-bold">Price: ₹{room.price}</p>
               <p>Type: {room.room_type}</p>
               <p>AC: {room.is_ac ? "Yes" : "No"}</p>
               <p>Parking: {room.has_parking ? "Yes" : "No"}</p>
@@ -85,8 +85,10 @@ function Dashboard() {
                       try {
                         await deleteRoom(room.id);
                         setRooms(rooms.filter(r => r.id !== room.id));
+                        toast.success("Room deleted successfully");
                       } catch (error) {
                         setError("Failed to delete room");
+                        toast.error("Failed to delete room: " + (error.response?.data?.message || error.message));
                       }
                     }}
                     className="text-red-500 hover:underline"

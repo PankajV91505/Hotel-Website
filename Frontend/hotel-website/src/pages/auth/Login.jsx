@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login, googleLogin } from "../../api/auth";
+import { toast } from 'react-toastify';
 
-function Login() {
+function Login({ setIsAuthenticated }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,13 +21,16 @@ function Login() {
     try {
       const response = await login({ email, password });
       localStorage.setItem("token", response.access_token);
-      setMessage("Login successful! Redirecting to dashboard...");
-      setTimeout(() => navigate("/dashboard/rooms"), 2000);
+      setIsAuthenticated(true);
+      setMessage("Login successful! Redirecting to profile...");
+      toast.success("Login successful!");
+      setTimeout(() => navigate("/profile"), 2000);
     } catch (error) {
       console.error("Login failed:", error);
       const errorMessage =
         error.response?.data?.message || "Login failed. Please try again.";
       setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -85,7 +89,7 @@ function Login() {
           </button>
 
           <p className="mt-4 text-center">
-            Don&apos;t have an account?{" "}
+            Don't have an account?{" "}
             <Link to="/signup" className="text-blue-500 hover:underline">
               Sign Up
             </Link>
