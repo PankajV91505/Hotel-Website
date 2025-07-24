@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { resetPassword } from "../../api/auth";
+import { toast } from "react-toastify";
+import { FaEnvelope, FaKey, FaLock } from 'react-icons/fa'; // Importing icons
 
 function ResetPassword() {
   const [email, setEmail] = useState("");
@@ -8,93 +10,144 @@ function ResetPassword() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false); // Added loading state
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setMessage("");
+    setLoading(true); // Set loading to true
 
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match.");
+      toast.error("Passwords do not match.");
+      setLoading(false);
       return;
     }
 
     try {
       const response = await resetPassword(email, otp, newPassword);
-      setMessage(response.message);
-      setTimeout(() => navigate("/login"), 2000);
-    } catch (error) {
-      console.error("Reset password failed:", error);
-      const errorMessage = error.response?.data?.message || "Failed to reset password. Please try again.";
-      setError(errorMessage);
+      toast.success(response.message); // Using toast for success message
+      setTimeout(() => navigate("/login"), 1500); // Shorter timeout for faster redirection
+    } catch (err) {
+      console.error("Reset password failed:", err);
+      const errorMessage = err.response?.data?.message || "Failed to reset password. Please try again.";
+      setError(errorMessage); // Set error for display in component
+      toast.error(errorMessage); // Show toast notification
+    } finally {
+      setLoading(false); // Set loading to false
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold text-center mb-6">Reset Password</h1>
-        {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
-        {message && <p className="text-green-500 mb-4 text-center">{message}</p>}
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4 font-inter">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 sm:p-10 transform transition-all duration-300 hover:scale-[1.01]">
+        <h1 className="text-4xl font-extrabold text-gray-800 mb-8 text-center">
+          Reset Your Password
+        </h1>
 
-        <div className="bg-white p-6 rounded shadow-md">
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-gray-700">Email</label>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <span className="block sm:inline">{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+              Email Address
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaEnvelope className="text-gray-400" />
+              </span>
               <input
                 type="email"
+                id="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value.trim())}
-                className="w-full p-2 border rounded"
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                placeholder="you@example.com"
                 required
               />
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">OTP</label>
+          </div>
+
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="otp">
+              OTP
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaKey className="text-gray-400" />
+              </span>
               <input
                 type="text"
+                id="otp"
                 value={otp}
-                onChange={(e) => setOtp(e.target.value.trim())}
-                className="w-full p-2 border rounded"
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                placeholder="Enter 6-digit OTP"
                 required
               />
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">New Password</label>
+          </div>
+
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="newPassword">
+              New Password
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaLock className="text-gray-400" />
+              </span>
               <input
                 type="password"
+                id="newPassword"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full p-2 border rounded"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                placeholder="••••••••"
                 required
               />
             </div>
-            <div className="mb-4">
-              <label className="block text-gray-700">Confirm Password</label>
+          </div>
+
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="confirmPassword">
+              Confirm New Password
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaLock className="text-gray-400" />
+              </span>
               <input
                 type="password"
+                id="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full p-2 border rounded"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                placeholder="••••••••"
                 required
               />
             </div>
-            <button
-              type="submit"
-              className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-            >
-              Reset Password
-            </button>
-          </form>
-          <p className="mt-4 text-center">
-            Back to{" "}
-            <Link to="/login" className="text-blue-500 hover:underline">
-              Login
-            </Link>
-          </p>
-        </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading} // Disable button when loading
+            className="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300 shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          >
+            {loading ? "Resetting Password..." : "Reset Password"}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-gray-600">
+          Back to{" "}
+          <Link to="/login" className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline transition duration-200">
+            Login
+          </Link>
+        </p>
       </div>
     </div>
   );

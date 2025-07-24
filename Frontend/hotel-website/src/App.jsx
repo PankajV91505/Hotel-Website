@@ -1,28 +1,50 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet } from 'react-router-dom'; // Outlet is used for nested routes
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-function App() {
+import Navbar from './components/Navbar'; // Adjust path if needed
+import Sidebar from './components/Sidebar'; // Adjust path if needed
+import Footer from './components/Footer'; // Adjust path if needed
+
+function App({ isAuthenticated, setIsAuthenticated }) { // Receive props from Root
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-10 max-w-md w-full text-center">
-        <h1 className="text-4xl font-extrabold text-gray-800 mb-4">🏨 Hotel Booking App</h1>
-        <p className="text-gray-600 mb-6">Plan your perfect stay. Sign up or log in to continue.</p>
-        <div className="flex justify-center space-x-4">
-          <Link
-            to="/signup"
-            className="px-6 py-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-200 shadow"
-          >
-            Sign Up
-          </Link>
-          <Link
-            to="/login"
-            className="px-6 py-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 transition duration-200 shadow"
-          >
-            Login
-          </Link>
-        </div>
-      </div>
+    <div className="flex flex-col min-h-screen">
+      <Navbar
+        toggleSidebar={toggleSidebar}
+        isAuthenticated={isAuthenticated}
+        setIsAuthenticated={setIsAuthenticated}
+      />
+      <Sidebar
+        isOpen={isSidebarOpen}
+        toggleSidebar={toggleSidebar}
+        isAuthenticated={isAuthenticated}
+        setIsAuthenticated={setIsAuthenticated}
+      />
+
+      {/* Overlay for mobile when sidebar is open */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={toggleSidebar}
+        ></div>
+      )}
+
+      <main
+        className={`flex-grow transition-all duration-300 ease-in-out
+          ${isSidebarOpen ? 'md:ml-64' : 'md:ml-0'}`}
+      >
+        {/* This Outlet will render the content of your nested routes (e.g., Home, Login, Dashboard) */}
+        <Outlet />
+      </main>
+      <Footer />
+      <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
     </div>
   );
 }

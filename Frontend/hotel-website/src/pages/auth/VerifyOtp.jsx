@@ -1,60 +1,106 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { verifyOtp } from '../../api/auth';
-import { useAuth } from '../../hooks/useAuth';
+import { verifyOtp } from '../../api/auth'; // Adjust path if necessary
+import { toast } from 'react-toastify';
+import { FaEnvelope, FaKey } from 'react-icons/fa'; // Importing icons
 
 function VerifyOtp() {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
+  const [error, setError] = useState(""); // Added error state
+  const [loading, setLoading] = useState(false); // Added loading state
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
+    setError(""); // Clear previous errors
+    setLoading(true); // Set loading to true
+
     try {
-      const response = await verifyOtp({
-        email: email,
-        otp: otp // ✅ snake_case
-      });
-      login(response.access_token);
-      navigate('/dashboard/rooms');
-    } catch (error) {
-      console.error('OTP verification failed:', error);
+      // Corrected the call to verifyOtp to match the API function signature
+      const response = await verifyOtp(email, otp);
+      localStorage.setItem("token", response.access_token); // Set token directly
+      toast.success("OTP verified successfully! Redirecting..."); // Show success toast
+      setTimeout(() => navigate('/dashboard/rooms'), 1500); // Shorter timeout for faster redirection
+    } catch (err) {
+      console.error('OTP verification failed:', err);
+      const errorMessage = err.response?.data?.message || "Invalid OTP. Please try again.";
+      setError(errorMessage); // Set error for display in component
+      toast.error(errorMessage); // Show error toast
+    } finally {
+      setLoading(false); // Set loading to false
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded shadow-md min-h-screen flex items-center justify-center">
-      <div className="w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">Verify OTP</h2>
-        <form onSubmit={handleVerifyOtp}>
-          <div className="mb-4">
-            <label className="block text-gray-700">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4 font-inter">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 sm:p-10 transform transition-all duration-300 hover:scale-[1.01]">
+        <h1 className="text-4xl font-extrabold text-gray-800 mb-8 text-center">
+          Verify Your OTP
+        </h1>
+
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative mb-6" role="alert">
+            <span className="block sm:inline">{error}</span>
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700">OTP</label>
-            <input
-              type="text"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="w-full p-2 border rounded"
-              required
-            />
+        )}
+
+        <form onSubmit={handleVerifyOtp} className="space-y-6">
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="email">
+              Email Address
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaEnvelope className="text-gray-400" />
+              </span>
+              <input
+                type="email"
+                id="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
           </div>
+
+          <div>
+            <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="otp">
+              OTP
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                <FaKey className="text-gray-400" />
+              </span>
+              <input
+                type="text"
+                id="otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200"
+                placeholder="Enter 6-digit OTP"
+                required
+              />
+            </div>
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+            disabled={loading} // Disable button when loading
+            className="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-300 shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           >
-            Verify OTP
+            {loading ? "Verifying..." : "Verify OTP"}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-gray-600">
+          Already verified?{" "}
+          <Link to="/login" className="text-indigo-600 hover:text-indigo-800 font-semibold hover:underline transition duration-200">
+            Login
+          </Link>
+        </p>
       </div>
     </div>
   );

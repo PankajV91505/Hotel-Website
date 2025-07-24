@@ -61,6 +61,27 @@ export const getUserDetails = async () => {
   return res.data;
 };
 
+// ADDED LOGOUT FUNCTION
+/**
+ * Logs out the user by removing the JWT token from local storage.
+ * This is a client-side logout.
+ * If your backend has a /logout endpoint to invalidate tokens, you would call it here.
+ */
+export const logout = async () => {
+  try {
+    localStorage.removeItem('token');
+    console.log('Token removed from local storage (client-side logout).');
+    // Optionally, if you had a backend logout endpoint to invalidate server-side token:
+    // await API.post("/auth/logout"); // Uncomment if you implement a backend logout endpoint
+  } catch (error) {
+    console.error('Error during client-side logout:', error);
+    // Even if there's an error, we still want to clear the token locally.
+    localStorage.removeItem('token');
+    throw error; // Re-throw to inform the caller
+  }
+};
+
+
 // ROOMS
 export const getRooms = async () => {
   const res = await API.get("/rooms");
