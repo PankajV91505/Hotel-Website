@@ -1,18 +1,17 @@
-Hotel Booking Application
+🌐 Hotel Booking Application
 
 A modern, full-stack hotel booking platform inspired by OYO and MakeMyTrip, designed to provide a seamless user experience for booking rooms. The application features user authentication, room management, secure payments via Razorpay, and a responsive, blue-themed UI. Built with a React + Vite frontend and a Flask backend, it leverages PostgreSQL for data storage and supports Google OAuth for login.
-
 Table of Contents
 
-    Features
+    ✨ Features
 
-    Technologies
+    🚀 Tech Stack
 
-    Project Structure
+    📁 Project Structure
 
-    Prerequisites
+    ⚙️ Prerequisites
 
-    Setup Instructions
+    🛠️ Setup Instructions
 
         Backend Setup
 
@@ -20,9 +19,9 @@ Table of Contents
 
         Database Setup
 
-    Running the Application
+    ▶️ Running the Application
 
-    API Endpoints
+    🔌 API Endpoints
 
         Authentication API Endpoints
 
@@ -30,20 +29,20 @@ Table of Contents
 
         Bookings API Endpoints
 
-    Testing
+    🧪 Testing
 
-    Debugging Common Issues
+    🐞 Debugging Common Issues
 
-    Environment Variables
+    🔑 Environment Variables
 
-    Postman Collection
+    📮 Postman Collection
 
-    Contributing
+    🤝 Contributing
 
-    License
+    📄 License
 
-Features
-User Authentication
+✨ Features
+🔐 User Authentication
 
     Sign up with email/password and OTP verification.
 
@@ -55,7 +54,7 @@ User Authentication
 
     Secure logout with JWT token invalidation.
 
-Room Management
+🏨 Room Management
 
     Browse rooms with search and filter options.
 
@@ -63,7 +62,7 @@ Room Management
 
     Room details include price, type, AC/parking availability, and description.
 
-Booking System
+🗓️ Booking System
 
     Book rooms with check-in/check-out dates, guest details, and government ID.
 
@@ -73,7 +72,7 @@ Booking System
 
     View booking history in /dashboard/bookings.
 
-UI/UX
+🎨 UI/UX
 
     Responsive, blue-themed design inspired by OYO/MakeMyTrip.
 
@@ -83,7 +82,7 @@ UI/UX
 
     Map integration (if implemented) using react-leaflet.
 
-Security
+🔒 Security
 
     JWT-based authentication for API endpoints.
 
@@ -93,61 +92,76 @@ Security
 
     Government ID privacy through masking in emails.
 
-Testing
+🧪 Testing
 
     Backend unit tests for authentication, rooms, and bookings.
 
     Postman collection for API testing.
 
-Technologies
+🚀 Tech Stack
+
+Layer
+	
+
+Tech
+
 Frontend
+	
 
-    React 18 (with Vite for fast development)
-
-    Tailwind CSS (responsive styling)
-
-    React Router (navigation)
-
-    Axios (API requests)
-
-    React Toastify (notifications)
-
-    React Leaflet (optional map integration)
-
-    Razorpay SDK (payment processing)
+React 18 + Vite + Tailwind CSS
 
 Backend
+	
 
-    Flask 2.x (Python web framework)
-
-    Flask-SQLAlchemy (ORM for PostgreSQL)
-
-    Flask-JWT-Extended (JWT authentication)
-
-    Flask-Mail (email sending)
-
-    Flask-CORS (cross-origin support)
-
-    Flask-OAuthlib (Google OAuth)
+Flask 2.x
 
 Database
+	
 
-    PostgreSQL 15+
+PostgreSQL 15+
 
-Tools
+Auth
+	
 
-    Python 3.10+
+JWT (Flask-JWT-Extended)
 
-    Node.js 18+
+OTP Email
+	
 
-    npm 8+
+Flask-Mail (SMTP)
 
-    Postman (API testing)
+OAuth
+	
 
-    Flask-Migrate (database migrations)
+Flask-OAuthlib (Google)
 
-Project Structure
+Payments
+	
 
+Razorpay SDK
+
+API Testing
+	
+
+Postman
+
+DB Migrations
+	
+
+Flask-Migrate
+
+Notifications
+	
+
+React Toastify
+
+Mapping (Opt.)
+	
+
+React Leaflet
+📁 Project Structure
+
+```
 hotel-booking-app/
 ├── backend/                  # Flask backend
 │   ├── app/
@@ -258,9 +272,9 @@ hotel-booking-app/
     ├── tailwind.config.js    # Tailwind configuration
     ├── vite.config.js        # Vite configuration
     └── package.json
+```
 
-
-Prerequisites
+⚙️ Prerequisites
 
 Before you begin, ensure you have the following installed:
 
@@ -276,7 +290,7 @@ Before you begin, ensure you have the following installed:
 
     Postman: Install Postman from postman.com for API testing.
 
-Setup Instructions
+🛠️ Setup Instructions
 
 Follow these steps to get the application up and running on your local machine.
 Backend Setup
@@ -285,17 +299,14 @@ Backend Setup
 
     cd hotel-booking-app/backend
 
-
     Create a Virtual Environment:
 
     python -m venv venv
     source venv/bin/activate # On Windows: venv\Scripts\activate
 
-
     Install Dependencies:
 
     pip install -r requirements.txt
-
 
     Example requirements.txt content:
 
@@ -310,7 +321,6 @@ Backend Setup
     python-dotenv==1.0.1
     pytest==7.4.3
 
-
     Configure Environment Variables:
     Create a .env file in the backend/ directory and add your secret keys and credentials:
 
@@ -320,7 +330,6 @@ Backend Setup
     MAIL_PASSWORD=your_app_password
     GOOGLE_CLIENT_ID=your_google_client_id
     GOOGLE_CLIENT_SECRET=your_google_client_secret
-
 
     Note: For MAIL_PASSWORD, if you are using Gmail, you will likely need to generate an App Password from your Google Account settings, as regular passwords are not supported for third-party app access.
 
@@ -343,13 +352,11 @@ Backend Setup
         GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
         GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 
-
     Initialize Database:
 
     flask db init
     flask db migrate -m "Initial migration"
     flask db upgrade
-
 
 Frontend Setup
 
@@ -357,11 +364,9 @@ Frontend Setup
 
     cd hotel-booking-app/frontend
 
-
     Install Dependencies:
 
     npm install
-
 
     Example package.json dependencies:
 
@@ -381,19 +386,16 @@ Frontend Setup
       }
     }
 
-
     Configure Environment Variables:
     Create a .env file in the frontend/ directory:
 
     VITE_API_URL=http://localhost:5000/api
     VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 
-
     Verify Razorpay Integration:
     Ensure your public/index.html file includes the Razorpay checkout script:
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-
 
 Database Setup
 
@@ -404,12 +406,10 @@ Database Setup
     CREATE DATABASE hotel;
     \q
 
-
     Add Test Data (Optional but Recommended):
     Connect to your new database and execute the following SQL commands to set up a test admin user and a sample room:
 
     psql -U postgres -d hotel
-
 
     Then, execute:
 
@@ -417,24 +417,20 @@ Database Setup
     INSERT INTO rooms (id, name, description, price, room_type, is_ac, has_parking, availability)
     VALUES (7, 'Premium Suite', 'Luxurious suite with sea view', 8000, 'Suite', true, true, true);
 
-
-Running the Application
+▶️ Running the Application
 Start Backend
 
     Navigate to the Backend Directory:
 
     cd hotel-booking-app/backend
 
-
     Activate Virtual Environment:
 
     source venv/bin/activate # On Windows: venv\Scripts\activate
 
-
     Run the Flask Application:
 
     python run.py
-
 
     The backend will be accessible at http://localhost:5000.
 
@@ -444,15 +440,13 @@ Start Frontend
 
     cd hotel-booking-app/frontend
 
-
     Run the React Development Server:
 
     npm run dev
 
-
     The frontend will be accessible at http://localhost:5173.
 
-API Endpoints
+🔌 API Endpoints
 
 All API endpoints are prefixed with /api.
 Authentication API Endpoints (/api/auth)
@@ -468,13 +462,11 @@ Authentication API Endpoints (/api/auth)
           "password": "password123"
         }
 
-
         Response:
 
         {
           "message": "OTP sent to your email"
         }
-
 
     POST /verify-otp: Verify OTP to activate account.
 
@@ -485,14 +477,12 @@ Authentication API Endpoints (/api/auth)
           "otp": "123456"
         }
 
-
         Response:
 
         {
           "message": "OTP verified",
           "access_token": "jwt_token"
         }
-
 
     POST /login: Login with credentials.
 
@@ -503,14 +493,12 @@ Authentication API Endpoints (/api/auth)
           "password": "password123"
         }
 
-
         Response:
 
         {
           "message": "Login successful",
           "access_token": "jwt_token"
         }
-
 
     GET /google: Initiate Google OAuth login.
 
@@ -526,7 +514,6 @@ Authentication API Endpoints (/api/auth)
           "message": "Logged out successfully"
         }
 
-
     POST /forgot-password: Request password reset OTP.
 
         Request:
@@ -535,13 +522,11 @@ Authentication API Endpoints (/api/auth)
           "email": "user@example.com"
         }
 
-
         Response:
 
         {
           "message": "OTP sent to your email"
         }
-
 
     POST /reset-password: Reset password using OTP.
 
@@ -553,13 +538,11 @@ Authentication API Endpoints (/api/auth)
           "new_password": "newpassword123"
         }
 
-
         Response:
 
         {
           "message": "Password reset successful"
         }
-
 
     GET /me: Fetch user details.
 
@@ -574,7 +557,6 @@ Authentication API Endpoints (/api/auth)
           "...": "..."
         }
 
-
     PUT /update-profile: Update user profile.
 
         Request:
@@ -584,13 +566,11 @@ Authentication API Endpoints (/api/auth)
           "location": "Mumbai, India"
         }
 
-
         Response:
 
         {
           "message": "Profile updated successfully"
         }
-
 
 Rooms API Endpoints (/api/rooms)
 
@@ -613,7 +593,6 @@ Rooms API Endpoints (/api/rooms)
           "has_parking": true
         }
 
-
     PUT /:id: Update room (admin only).
 
     DELETE /:id: Delete room (admin only).
@@ -635,13 +614,11 @@ Bookings API Endpoints (/api/bookings)
           "payment_id": "pay_abc123"
         }
 
-
         Response:
 
         {
           "message": "Booking created successfully"
         }
-
 
     GET /my-bookings: List user's bookings.
 
@@ -656,8 +633,7 @@ Bookings API Endpoints (/api/bookings)
           }
         ]
 
-
-Testing
+🧪 Testing
 
 Follow these steps to test the application's core functionalities:
 
@@ -711,13 +687,11 @@ Follow these steps to test the application's core functionalities:
 
         cd hotel-booking-app/backend
 
-
         Run the tests:
 
         pytest tests/
 
-
-Debugging Common Issues
+🐞 Debugging Common Issues
 
 Here are solutions for common problems you might encounter:
 
@@ -727,18 +701,15 @@ Here are solutions for common problems you might encounter:
 
         cat backend/app.log
 
-
         Look for "Handled OPTIONS request" or any related errors.
 
         Verify CORS Configuration: Ensure CORS is correctly configured in app/__init__.py:
 
         CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173", "supports_credentials": True}})
 
-
         Test CORS Manually:
 
         curl -X OPTIONS http://localhost:5000/api/auth/logout -H "Origin: http://localhost:5173" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type,Authorization" -v
-
 
     401 Unauthorized (e.g., /auth/me):
 
@@ -746,14 +717,12 @@ Here are solutions for common problems you might encounter:
 
         localStorage.getItem('token')
 
-
         Decode JWT Token: If a token exists, try decoding it in a Python shell to check its validity and claims:
 
         from flask_jwt_extended import decode_token
         # Ensure you replace 'your-secret-key' with your actual FLASK_SECRET_KEY
         token = "your_token_from_localStorage"
         decode_token(token, 'your-secret-key')
-
 
     Booking Button Not Working:
 
@@ -775,7 +744,6 @@ Here are solutions for common problems you might encounter:
         msg.body = 'Test email'
         mail.send(msg)
 
-
         Environment Variables: Double-check MAIL_USERNAME and MAIL_PASSWORD in your backend/.env file. Ensure MAIL_PASSWORD is an App Password if you're using Gmail.
 
     Database Errors:
@@ -786,13 +754,11 @@ Here are solutions for common problems you might encounter:
         psql -U postgres -d hotel -c "\d rooms"
         psql -U postgres -d hotel -c "\d bookings"
 
-
         Check Test Data: Confirm that test data exists as expected:
 
         psql -U postgres -d hotel -c "SELECT * FROM rooms WHERE id = 7;"
 
-
-Environment Variables
+🔑 Environment Variables
 Backend (backend/.env)
 
     FLASK_SECRET_KEY=your-secret-key
@@ -813,7 +779,7 @@ Frontend (frontend/.env)
 
     VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
 
-Postman Collection
+📮 Postman Collection
 
 A Postman collection is provided for easy API testing:
 
@@ -823,7 +789,7 @@ A Postman collection is provided for easy API testing:
 
     You can then test various endpoints like /api/auth/login, /api/rooms, and /api/bookings.
 
-Contributing
+🤝 Contributing
 
 We welcome contributions to this project! To contribute:
 
@@ -833,19 +799,16 @@ We welcome contributions to this project! To contribute:
 
     git checkout -b feature/your-feature
 
-
     Commit your changes with a descriptive message:
 
     git commit -m "Add your feature"
-
 
     Push your branch to your forked repository:
 
     git push origin feature/your-feature
 
-
     Open a pull request from your feature branch to the main repository.
 
-License
+📄 License
 
 This project is licensed under the MIT License.
