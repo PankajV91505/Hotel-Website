@@ -1,0 +1,563 @@
+Hotel Booking Application
+A modern, full-stack hotel booking platform inspired by OYO and MakeMyTrip, designed to provide a seamless user experience for booking rooms. The application features user authentication, room management, secure payments via Razorpay, and a responsive, blue-themed UI. Built with a React + Vite frontend and a Flask backend, it leverages PostgreSQL for data storage and supports Google OAuth for login.
+Table of Contents
+
+Features
+Technologies
+Project Structure
+Prerequisites
+Setup Instructions
+Backend Setup
+Frontend Setup
+Database Setup
+
+
+Running the Application
+API Endpoints
+Authentication
+Rooms
+Bookings
+
+
+Testing
+Debugging Common Issues
+Environment Variables
+Postman Collection
+Contributing
+License
+
+Features
+
+User Authentication:
+Sign up with email/password and OTP verification.
+Login via email/password or Google OAuth.
+Password reset using OTP sent via email.
+Profile updates (phone number, location).
+Secure logout with JWT token invalidation.
+
+
+Room Management:
+Browse rooms with search and filter options.
+Admin users can create, update, or delete rooms.
+Room details include price, type, AC/parking availability, and description.
+
+
+Booking System:
+Book rooms with check-in/check-out dates, guest details, and government ID.
+Integrated Razorpay for secure payments (test mode).
+Booking confirmation email with masked government ID (e.g., A123456789 → AXXXXX6789).
+View booking history in /dashboard/bookings.
+
+
+UI/UX:
+Responsive, blue-themed design inspired by OYO/MakeMyTrip.
+Mobile-friendly sidebar and search bar.
+Toast notifications for user feedback using react-toastify.
+Map integration (if implemented) using react-leaflet.
+
+
+Security:
+JWT-based authentication for API endpoints.
+CORS configured for secure frontend-backend communication.
+Input validation and error handling.
+Government ID privacy through masking in emails.
+
+
+Testing:
+Backend unit tests for authentication, rooms, and bookings.
+Postman collection for API testing.
+
+
+
+Technologies
+
+Frontend:
+React 18 (with Vite for fast development)
+Tailwind CSS (responsive styling)
+React Router (navigation)
+Axios (API requests)
+React Toastify (notifications)
+React Leaflet (optional map integration)
+Razorpay SDK (payment processing)
+
+
+Backend:
+Flask 2.x (Python web framework)
+Flask-SQLAlchemy (ORM for PostgreSQL)
+Flask-JWT-Extended (JWT authentication)
+Flask-Mail (email sending)
+Flask-CORS (cross-origin support)
+Flask-OAuthlib (Google OAuth)
+
+
+Database: PostgreSQL 15+
+Tools:
+Python 3.10+
+Node.js 18+
+npm 8+
+Postman (API testing)
+Flask-Migrate (database migrations)
+
+
+
+Project Structure
+hotel-booking-app/
+├── backend/                   # Flask backend
+│   ├── app/
+│   │   ├── __init__.py        # Flask app initialization
+│   │   ├── config.py          # Configuration settings
+│   │   ├── extensions.py      # Flask extensions (DB, JWT, Mail, etc.)
+│   │   ├── models/            # Database models
+│   │   │   ├── user.py        # User model
+│   │   │   ├── room.py        # Room model
+│   │   │   └── booking.py     # Booking model
+│   │   ├── routes/
+│   │   │   ├── auth.py        # Authentication routes
+│   │   │   ├── rooms.py       # Room CRUD routes
+│   │   │   ├── bookings.py    # Booking routes
+│   │   │   └── __init__.py
+│   │   ├── utils/             # Utility functions
+│   │   │   ├── email.py       # Email sending functions
+│   │   │   ├── otp.py         # OTP generation/verification
+│   │   │   └── validators.py  # Input validators
+│   │   ├── static/            # Static files
+│   │   └── templates/         # Email templates
+│   ├── migrations/            # Database migrations
+│   ├── tests/                 # Backend tests
+│   │   ├── test_auth.py
+│   │   ├── test_rooms.py
+│   │   └── test_bookings.py
+│   ├── requirements.txt       # Python dependencies
+│   ├── .env                  # Environment variables
+│   └── run.py                # Application entry point
+│
+└── frontend/                 # React + Vite frontend
+    ├── public/               # Static assets
+    ├── src/
+    │   ├── api/              # API services
+    │   │   ├── auth.js       # Auth API calls
+    │   │   ├── rooms.js      # Room API calls
+    │   │   └── bookings.js   # Booking API calls
+    │   ├── assets/           # Images, fonts, etc.
+    │   ├── components/       # Reusable components
+    │   │   ├── auth/
+    │   │   │   ├── LoginForm.jsx
+    │   │   │   ├── SignupForm.jsx
+    │   │   │   └── ForgotPasswordForm.jsx
+    │   │   ├── common/
+    │   │   │   ├── Header.jsx
+    │   │   │   ├── Footer.jsx
+    │   │   │   ├── LoadingSpinner.jsx
+    │   │   │   └── ErrorBoundary.jsx
+    │   │   ├── data/              # Mock data for testing
+    │   │   ├── bookings/
+    │   │   │   └── rooms/
+    │   ├── components/       # Reusable components
+    │   │   ├── admin/
+    │   │   │   ├── AdminDashboard.jsx
+    │   │   │   └── AdminRoomForm.jsx
+    │   │   ├── auth/
+    │   │   │   ├── ForgotPasswordForm.jsx
+    │   │   │   ├── LoginForm.jsx
+    │   │   │   ├── OTPForm.jsx
+    │   │   │   └── SignupForm.jsx
+    │   │   ├── bookings/
+    │   │   │   ├── BookingCard.jsx
+    │   │   │   ├── BookingDetails.jsx
+    │   │   │   ├── BookingForm.jsx
+    │   │   │   └── BookingList.jsx
+    │   │   ├── common/
+    │   │   │   ├── Footer.jsx
+    │   │   │   ├── Header.jsx
+    │   │   │   ├── LoadingSpinner.jsx
+    │   │   │   ├── Navbar.jsx
+    │   │   │   ├── SearchBar.jsx
+    │   │   │   └── Sidebar.jsx
+    │   │   ├── rooms/
+    │   │   │   ├── RoomCard.jsx
+    │   │   │   ├── RoomDetails.jsx
+    │   │   │   ├── RoomFilters.jsx
+    │   │   │   └── RoomForm.jsx
+    │   │   └── ui/
+    │   │       ├── Button.jsx
+    │   │       ├── Input.jsx
+    │   │       └── Modal.jsx
+    │   ├── contexts/         # React contexts
+    │   │   ├── AuthContext.jsx
+    │   │   └── RoomContext.jsx
+    │   ├── hooks/            # Custom hooks
+    │   │   ├── useAuth.js
+    │   │   └── useApi.js
+    │   ├── layouts/          # Page layouts
+    │   │   ├── MainLayout.jsx
+    │   │   └── AuthLayout.jsx
+    │   ├── pages/            # Main pages
+    │   │   ├── auth/
+    │   │   │   ├── Login.jsx
+    │   │   │   ├── Signup.jsx
+    │   │   │   ├── VerifyOtp.jsx
+    │   │   │   └── ForgotPassword.jsx
+    │   │   ├── dashboard/
+    │   │   │   ├── Rooms.jsx      # Room listing with filters
+    │   │   │   ├── AddRoom.jsx    # Add new room
+    │   │   │   └── EditRoom.jsx   # Edit room
+    │   │   ├── bookings/
+    │   │   │   └── MyBookings.jsx
+    │   │   ├── Callback.jsx      # OAuth callback
+    │   │   ├── Profile.jsx       # User profile
+    │   │   └── Home.jsx
+    │   ├── router/           # Routing configuration
+    │   │   └── AppRouter.jsx
+    │   ├── store/            # State management (if using Redux)
+    │   ├── styles/           # Global styles
+    │   │   ├── index.css
+    │   │   └── tailwind.css
+    │   ├── utils/            # Utility functions
+    │   │   ├── auth.js       # Auth helpers
+    │   │   └── validators.js # Form validators
+    │   ├── App.jsx           # Main App component
+    │   └── main.jsx          # Entry point
+    ├── .env/               # Frontend environment variables
+    ├── postman/            # Postman collection for API testing
+    │   ├── HotelBooking.postman_collection.json
+    │   └── HotelBooking.postman_environment.json
+    ├── tailwind.config.js   # Tailwind configuration
+    ├── vite.config.js       # Vite configuration
+    └── package.json
+
+Prerequisites
+
+**Python 3.8 Install from python.org.
+Vite.js 18+: Install from nodejs.org.
+PostgreSQL: Install from postgresql.org or use a managed service.
+Razorpay Account: Sign up for a test account at razorpay.com to obtain test-token.
+Google OAuth Credentials: Set up at Google Cloud Console for Google login.
+Postman: Install from postman for API testing.
+
+Setup Instructions
+Backend Setup
+
+Navigate to Backend:
+cd ~/hotel-booking-app/backend
+
+
+Create Virtual Environment:
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+
+Install Dependencies:
+pip install -r requirements.txt
+
+Example requirements.txt:
+flask==2.3.3
+flask-sqlalchemy==3.2.2
+flask-migrate==4.0.0
+flask-jwt-extended==0.5.1
+flask-mail==0.9.1
+flask-cors==0.7.0
+flask-oauthlib==0.9.7
+psycopg2-binary==2.9.9
+python-dotenv==1.0.1
+pytest==7.4.3
+
+
+Configure Environment Variables:Create .env in backend/:
+FLASK_JWT_SECRET_TOKEN = your-secret-key
+
+Update app/config.py:
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+class Config:
+    SECRET_KEY = os.getenv('FLASK_SECRET_KEY')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://postgres:your_password@localhost/hotel')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    MAIL_SERVER = 'smtp.gmail.com'
+    MAIL_PORT = 587
+    MAIL_USE_TLS = True
+    MAIL_USERNAME = os.getenv('MAIL_USERNAME')
+    MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
+    GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+    GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+
+
+Initialize Database:
+flask db init
+flask db migrate -m "Initial migration"
+flask db upgrade
+
+
+
+Frontend Setup
+
+Navigate to Frontend Directory:cd ~/hotel-booking-app/frontend
+
+
+Install Dependencies:npm install
+
+Example package.json dependencies:{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.16.0",
+    "axios": "^1.5.1",
+    "react-toastify": "^9.1.3",
+    "react-leaflet": "^4.2.1",
+    "tailwindcss": "^3.3.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.1.0",
+    "vite": "^4.4.9"
+  }
+}
+
+
+Configure Environment Variables:Create .env in frontend/:VITE_API_URL=http://localhost:5000/api
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
+
+
+Verify Razorpay Integration:Ensure public/index.html includes:<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+
+
+Database Setup
+
+Create Database:psql -U postgres
+CREATE DATABASE hotel;
+\q
+
+
+Add Test Data:psql -U postgres -d hotel
+
+Execute:UPDATE users SET phone_number = '9876543210', location = 'Mumbai, India', is_admin = true, is_verified = true WHERE email = 'pankajv91505@gmail.com';
+INSERT INTO rooms (id, name, description, price, room_type, is_ac, has_parking, availability)
+VALUES (7, 'Premium Suite', 'Luxurious suite with sea view', 8000, 'Suite', true, true, true);
+
+
+
+Running the Application
+
+Start Backend:cd ~/hotel-booking-app/backend
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+python run.py
+
+
+Accessible at http://localhost:5000.
+
+
+Start Frontend:cd ~/hotel-booking-app/frontend
+npm run dev
+
+
+Accessible at http://localhost:5173.
+
+
+
+API Endpoints
+Authentication (/api/auth)
+
+POST /signup: Register a user with OTP verification.
+Request: { "firstName": "Pankaj", "lastName": "Verma", "email": "user@example.com", "password": "password123" }
+Response: { "message": "OTP sent to your email" }
+
+
+POST /verify-otp: Verify OTP to activate account.
+Request: { "email": "user@example.com", "otp": "123456" }
+Response: { "message": "OTP verified", "access_token": "jwt_token" }
+
+
+POST /login: Login with credentials.
+Request: { "email": "user@example.com", "password": "password123" }
+Response: { "message": "Login successful", "access_token": "jwt_token" }
+
+
+GET /google: Initiate Google OAuth login.
+GET /google/callback: Handle OAuth callback.
+POST /logout: Invalidate JWT token.
+Headers: Authorization: Bearer <token>
+Response: { "message": "Logged out successfully" }
+
+
+POST /forgot-password: Request password reset OTP.
+Request: { "email": "user@example.com" }
+Response: { "message": "OTP sent to your email" }
+
+
+POST /reset-password: Reset password using OTP.
+Request: { "email": "user@example.com", "otp": "123456", "new_password": "newpassword123" }
+Response: { "message": "Password reset successful" }
+
+
+GET /me: Fetch user details.
+Headers: Authorization: Bearer <token>
+Response: { "first_name": "Pankaj", "last_name": "Verma", "email": "user@example.com", ... }
+
+
+PUT /update-profile: Update user profile.
+Request: { "phone_number": "9876543210", "location": "Mumbai, India" }
+Response: { "message": "Profile updated successfully" }
+
+
+
+Rooms (/api/rooms)
+
+GET /: List all available rooms.
+GET /:id: Get room details by ID.
+Example: /rooms/7
+
+
+POST /: Create a new room (admin only).
+Request: { "name": "Premium Suite", "description": "Luxurious suite", "price": 8000, "room_type": "Suite", "is_ac": true, "has_parking": true }
+
+
+PUT /:id: Update room (admin only).
+DELETE /:id: Delete room (admin only).
+
+Bookings (/api/bookings)
+
+POST /: Create a booking.
+Request: { "room_id": 7, "start_date": "2025-07-25", "end_date": "2025-07-27", "guest_name": "Pankaj Verma", "government_id": "A123456789", "phone_number": "9876543210", "amount": 8000, "payment_id": "pay_abc123" }
+Response: { "message": "Booking created successfully" }
+
+
+GET /my-bookings: List user’s bookings.
+Response: [ { "id": 1, "room_name": "Premium Suite", "start_date": "2025-07-25", ... } ]
+
+
+
+Testing
+
+Login:
+Visit http://localhost:5173/login.
+Use pankajv91505@gmail.com and password or Google login.
+Verify redirect to /dashboard/profile.
+Check DevTools > Network for /api/auth/login (200 OK).
+
+
+Book Room:
+Navigate to http://localhost:5173/dashboard/book-room/7.
+Fill form:
+Check-in: 2025-07-25
+Check-out: 2025-07-27
+Guest Name: Pankaj Verma
+Government ID: A123456789
+Phone: 9876543210
+
+
+Click "Book Now", complete Razorpay payment (test card: 4111 1111 1111 1111, any future date, CVV 123).
+Verify redirect to /dashboard/bookings and email with masked ID (AXXXXX6789).
+
+
+Logout:
+Click "Logout" in Header.jsx or Sidebar.jsx.
+Verify redirect to /login and localStorage.getItem('token') is null.
+Check /api/auth/logout in DevTools > Network (200 OK).
+
+
+Admin Features:
+Log in as admin (set is_admin = true in DB).
+Access /dashboard/add-room and /dashboard/rooms to manage rooms.
+
+
+Backend Tests:cd ~/hotel-booking-app/backend
+pytest tests/
+
+
+
+Debugging Common Issues
+
+CORS Errors (e.g., /api/auth/logout 404):
+Check backend/app.log:cat backend/app.log
+
+Look for Handled OPTIONS request or errors.
+Verify CORS in app/__init__.py:CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173", "supports_credentials": True}})
+
+
+Test CORS:curl -X OPTIONS http://localhost:5000/api/auth/logout -H "Origin: http://localhost:5173" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: Content-Type,Authorization" -v
+
+
+
+
+401 Unauthorized (e.g., /auth/me):
+Verify token:localStorage.getItem('token') // In DevTools console
+
+
+Decode token:python
+>>> from flask_jwt_extended import decode_token
+>>> token = "your_token_from_localStorage"
+>>> decode_token(token, 'your-secret-key')
+
+
+
+
+Booking Button Not Working:
+Check BookingForm.jsx for onSubmit handler.
+Verify Razorpay script in public/index.html.
+Inspect /api/bookings in DevTools > Network (201 Created).
+
+
+Email Not Sending:
+Test email configuration:from flask_mail import Message, Mail
+from app import create_app
+app = create_app()
+mail = Mail(app)
+msg = Message('Test', sender=app.config['MAIL_USERNAME'], recipients=['test@example.com'])
+msg.body = 'Test email'
+mail.send(msg)
+
+
+Check MAIL_USERNAME, MAIL_PASSWORD in .env.
+
+
+Database Errors:
+Verify schema:psql -U postgres -d hotel -c "\d users"
+psql -U postgres -d hotel -c "\d rooms"
+psql -U postgres -d hotel -c "\d bookings"
+
+
+Check test data:psql -U postgres -d hotel -c "SELECT * FROM rooms WHERE id = 7;"
+
+
+
+
+
+Environment Variables
+
+Backend (backend/.env):FLASK_SECRET_KEY=your-secret-key
+DATABASE_URL=postgresql://postgres:your_password@localhost/hotel
+MAIL_USERNAME=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+
+Frontend (frontend/.env):VITE_API_URL=http://localhost:5000/api
+VITE_RAZORPAY_KEY_ID=your_razorpay_key_id
+
+
+
+Postman Collection
+
+Import frontend/postman/HotelBooking.postman_collection.json and HotelBooking.postman_environment.json into Postman.
+Set environment variables (baseUrl, token) in Postman.
+Test endpoints like /api/auth/login, /api/rooms, /api/bookings.
+
+Contributing
+
+Fork the repository.
+Create a feature branch:git checkout -b feature/your-feature
+
+
+Commit changes:git commit -m "Add your feature"
+
+
+Push to branch:git push origin feature/your-feature
+
+
+Open a pull request.
+
+License
+This project is licensed under the MIT License.
